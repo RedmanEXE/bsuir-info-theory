@@ -10,23 +10,31 @@
     gtk_widget_set_margin_end(widget, margin);\
     gtk_widget_set_margin_bottom(widget, margin);
 
-static void on_open_file_dialog(AppPage *page);
-void (*open_file_dialog)(AppPage *page) = on_open_file_dialog;
+static void on_open_file_open_dialog(AppPage *page);
+static void on_open_file_save_dialog(AppPage *page);
+void (*open_file_open_dialog)(AppPage *page) = on_open_file_open_dialog;
+void (*open_file_save_dialog)(AppPage *page) = on_open_file_save_dialog;
 
 static GtkFileDialog *file_dialog;
 static GtkWindow *window;
 static void on_open_file_dialog_result(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
     AppPage *page = (AppPage *)user_data;
-    page->on_file_dialog_result(page, source_object, res);
+    page->on_file_dialog_open_result(page, source_object, res);
 }
 
-static void on_open_file_dialog(AppPage *page)
+static void on_save_file_dialog_result(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
-    gtk_file_dialog_set_title(file_dialog, "Выберите файл для считывания текста");
+    AppPage *page = (AppPage *)user_data;
+    page->on_file_dialog_save_result(page, source_object, res);
+}
+
+static void on_open_file_open_dialog(AppPage *page)
+{
+    gtk_file_dialog_set_title(file_dialog, APP_STR_FILE_OPEN_DIALOG_TITLE);
 
     GtkFileFilter *filter = gtk_file_filter_new();
-    gtk_file_filter_set_name(filter, "Текстовые файлы (*.txt)");
+    gtk_file_filter_set_name(filter, APP_STR_FILE_OPEN_DIALOG_FILTER_TXT);
     gtk_file_filter_add_pattern(filter, "*.txt");
 
     GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
@@ -39,10 +47,28 @@ static void on_open_file_dialog(AppPage *page)
     gtk_file_dialog_open(file_dialog, window, NULL, on_open_file_dialog_result, page);
 }
 
+static void on_open_file_save_dialog(AppPage *page)
+{
+    gtk_file_dialog_set_title(file_dialog, APP_STR_FILE_SAVE_DIALOG_TITLE);
+
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, APP_STR_FILE_OPEN_DIALOG_FILTER_TXT);
+    gtk_file_filter_add_pattern(filter, "*.txt");
+
+    GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+    g_list_store_append(filters, filter);
+
+    gtk_file_dialog_set_filters(file_dialog, G_LIST_MODEL(filters));
+    g_object_unref(filter);
+    g_object_unref(filters);
+
+    gtk_file_dialog_save(file_dialog, window, NULL, on_save_file_dialog_result, page);
+}
+
 static void on_activate(GtkApplication *app, gpointer user_data)
 {
     window = GTK_WINDOW(gtk_application_window_new(app));
-    gtk_window_set_title(window, "ТИ, лабораторная работа 1 (вариант 7)");
+    gtk_window_set_title(window, APP_STR_TITLE);
     gtk_window_set_default_size(window, 500, 200);
 
     // TabView
@@ -58,10 +84,10 @@ static void on_activate(GtkApplication *app, gpointer user_data)
 
     // Pages: rotation matrix
     rotation_matrix_page.on_create(&rotation_matrix_page, GTK_WIDGET(window));
-    gtk_stack_add_titled(GTK_STACK(stack), rotation_matrix_page.page, "rotation_matrix_page", "Поворачивающаяся решётка");
+    gtk_stack_add_titled(GTK_STACK(stack), rotation_matrix_page.page, "rotation_matrix_page", RTMP_STR_TITLE);
 
     vigenere_algorithm_page.on_create(&vigenere_algorithm_page, GTK_WIDGET(window));
-    gtk_stack_add_titled(GTK_STACK(stack), vigenere_algorithm_page.page, "vigenere_algorithm_page", "Алгоритм Виженера");
+    gtk_stack_add_titled(GTK_STACK(stack), vigenere_algorithm_page.page, "vigenere_algorithm_page", VALP_STR_TITLE);
 
     gtk_box_append(GTK_BOX(vbox), switcher);
     gtk_box_append(GTK_BOX(vbox), stack);

@@ -5,12 +5,21 @@
 #ifndef INFO_THEORY_ROTATION_MATRIX_H
 #define INFO_THEORY_ROTATION_MATRIX_H
 
+#include <ctype.h>
 #include <stdlib.h>
+
+typedef struct
+{
+    char c;
+    uint8_t is_new;
+} Crypto_RotationMatrix_StepItem;
 
 typedef struct
 {
     int matrix_length;
     char** process_matrix;
+
+    Crypto_RotationMatrix_StepItem** steps[4];
 } Crypto_RotationMatrix;
 
 typedef struct {
@@ -20,12 +29,19 @@ typedef struct {
 
 Crypto_RotationMatrix* Crypto_RotationMatrix_Create(const int length)
 {
-    Crypto_RotationMatrix* matrix = (Crypto_RotationMatrix*)calloc(1, sizeof(Crypto_RotationMatrix));
+    Crypto_RotationMatrix* matrix = (Crypto_RotationMatrix *)calloc(1, sizeof(Crypto_RotationMatrix));
 
     matrix->matrix_length = length;
-    matrix->process_matrix = (char**)calloc(length, sizeof(char*));
+    matrix->process_matrix = (char **)calloc(length, sizeof(char *));
     for (int i = 0; i < length; i++)
-        matrix->process_matrix[i] = (char*)calloc(length, sizeof(char));
+        matrix->process_matrix[i] = (char *)calloc(length, sizeof(char));
+
+    for (int i = 0; i < 4; i++)
+    {
+        matrix->steps[i] = (Crypto_RotationMatrix_StepItem **)calloc(length, sizeof(Crypto_RotationMatrix_StepItem *));
+        for (int j = 0; j < length; j++)
+            matrix->steps[i][j] = (Crypto_RotationMatrix_StepItem *)calloc(length, sizeof(Crypto_RotationMatrix_StepItem));
+    }
 
     return matrix;
 }
@@ -49,7 +65,7 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
             for (int c = 0; c < manager->matrix_length; c++)
             {
                 if (processed < len)
-                    manager->process_matrix[r][c] = string[processed++];
+                    manager->process_matrix[r][c] = (char)toupper(string[processed++]);
                 else
                     manager->process_matrix[r][c] = ' ';
             }
@@ -60,7 +76,15 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
         for (int rot = 0; rot < 4; rot++)
         {
             for (int i = 0; i < 4; i++)
+            {
                 out[out_index++] = manager->process_matrix[points[i].r][points[i].c];
+
+                for (int step = rot; step < 4; step++)
+                {
+                    manager->steps[step][points[i].r][points[i].c].c = manager->process_matrix[points[i].r][points[i].c];
+                    manager->steps[step][points[i].r][points[i].c].is_new = (step == rot);
+                }
+            }
 
             for (int i = 0; i < 4; i++)
             {
@@ -89,13 +113,21 @@ int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, 
         for (int rot = 0; rot < 4; rot++)
         {
             for (int i = 0; i < 4; i++)
+            {
                 if (processed < len)
-                    manager->process_matrix[points[i].r][points[i].c] = string[processed++];
+                    manager->process_matrix[points[i].r][points[i].c] = (char)toupper(string[processed++]);
                 else
                 {
-                    manager->process_matrix[points[i].r][points[i].c] = 'A' + (processed - len);
+                    manager->process_matrix[points[i].r][points[i].c] = 'A' + (processed - len) % ('Z' - 'A');
                     processed++;
                 }
+
+                for (int step = rot; step < 4; step++)
+                {
+                    manager->steps[step][points[i].r][points[i].c].c = manager->process_matrix[points[i].r][points[i].c];
+                    manager->steps[step][points[i].r][points[i].c].is_new = (step == rot);
+                }
+            }
 
             for (int i = 0; i < 4; i++)
             {
@@ -107,7 +139,9 @@ int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, 
 
         for (int r = 0; r < manager->matrix_length; r++)
             for (int c = 0; c < manager->matrix_length; c++)
+            {
                 out[out_index++] = manager->process_matrix[r][c];
+            }
     }
 
     out[out_index] = '\0';

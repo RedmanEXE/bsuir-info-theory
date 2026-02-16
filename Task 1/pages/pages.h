@@ -37,12 +37,14 @@ typedef struct AppPage
     void *data;
 
     void (*on_create)(struct AppPage *page, GtkWidget *window);
-    void (*on_file_dialog_result)(struct AppPage *page, GObject *original_object, GAsyncResult *res);
+    void (*on_file_dialog_open_result)(struct AppPage *page, GObject *original_object, GAsyncResult *res);
+    void (*on_file_dialog_save_result)(struct AppPage *page, GObject *original_object, GAsyncResult *res);
     void (*on_free)(struct AppPage *page);
 } AppPage;
 
 extern AppPage rotation_matrix_page;
 extern AppPage vigenere_algorithm_page;
-extern void (*open_file_dialog)(AppPage *page);
+extern void (*open_file_open_dialog)(AppPage *page);
+extern void (*open_file_save_dialog)(AppPage *page);
 
 #endif //INFO_THEORY_PAGE_ROTATION_MATRIX_H

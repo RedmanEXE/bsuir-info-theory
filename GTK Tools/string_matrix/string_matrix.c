@@ -64,7 +64,7 @@ static void on_bind_label(GtkSignalListItemFactory *factory, GtkListItem *item, 
         PangoFontDescription *font_desc = pango_font_description_new();
         pango_font_description_set_size(font_desc, 14 * PANGO_SCALE);
         if (row->items[col_index].style & STRING_MATRIX_CELL_BOLD)
-            pango_font_description_set_weight(font_desc, PANGO_WEIGHT_BOLD);
+            pango_font_description_set_weight(font_desc, PANGO_WEIGHT_ULTRABOLD);
         pango_attr_list_insert(attrs, pango_attr_font_desc_new(font_desc));
         gtk_label_set_attributes(label, attrs);
         pango_attr_list_unref(attrs);
@@ -89,6 +89,31 @@ static void append_view_column(StringMatrix *mat, unsigned int col_index)
     GtkColumnViewColumn *column = gtk_column_view_column_new("", factory);
     gtk_column_view_column_set_expand(column, TRUE);
     gtk_column_view_append_column(mat->column_view, column);
+}
+
+static void matrix_row_resize_internal(MatrixRow *self, int new_n_columns)
+{
+    if (new_n_columns == self->n_columns)
+        return;
+
+    if (new_n_columns < self->n_columns)
+    {
+        int old_n = self->n_columns;
+        self->n_columns = new_n_columns;
+        for (int i = new_n_columns; i < old_n; i++)
+            g_free(self->items[i].text);
+
+        self->items = g_renew(MatrixRowItem, self->items, new_n_columns);
+    } else
+    {
+        self->items = g_renew(MatrixRowItem, self->items, new_n_columns);
+        for (int i = self->n_columns; i < new_n_columns; i++)
+        {
+            self->items[i].text = g_strdup("");
+            self->items[i].style = STRING_MATRIX_CELL_NORMAL;
+        }
+        self->n_columns = new_n_columns;
+    }
 }
 
 StringMatrix* string_matrix_new(unsigned int initial_cols, unsigned int initial_rows)
@@ -156,6 +181,13 @@ void string_matrix_resize_columns(StringMatrix *mat, unsigned int new_col_count)
 
     if (columns_len == new_col_count)
         return;
+
+    for (int i = 0; i < rows_len; i++)
+    {
+        MatrixRow *row = APP_MATRIX_ROW(g_list_model_get_item(G_LIST_MODEL(mat->store), i));
+        matrix_row_resize_internal(row, new_col_count);
+        g_object_unref(row);
+    }
 
     if (columns_len > new_col_count)
     {
