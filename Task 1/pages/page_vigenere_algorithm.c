@@ -10,7 +10,6 @@ void vigenere_algorithm_page_open_response(AppPage *page, GObject *original_obje
 void vigenere_algorithm_page_free(struct AppPage *page);
 
 AppPage vigenere_algorithm_page = {
-    .page = NULL,
     .on_create = vigenere_algorithm_page_create,
     .on_file_dialog_result = vigenere_algorithm_page_open_response,
     .on_free = vigenere_algorithm_page_free
@@ -60,30 +59,80 @@ static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
     GError *error = NULL;
     wchar_t output[255];
 
-    const char *input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
-    wchar_t *input_w = (wchar_t*)g_utf8_to_ucs4(input, 256, NULL, NULL, &error);
-    long input_len = delete_all_non_russians_chars(input_w);
+    const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
+    wchar_t *input = (wchar_t*)g_utf8_to_ucs4(raw_input, 256, NULL, NULL, &error);
+    const int raw_input_len = (int)wcslen(input);
+    const int input_len = delete_all_non_russians_chars(input);
+    if (0 < input_len && input_len != raw_input_len)
+    {
+        EntryDeco_MarkEntryRowAsWarning(
+            ADW_ENTRY_ROW(data->text_edit),
+            VALP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING
+            );
+    }
 
-    const char *key = gtk_editable_get_text(GTK_EDITABLE(data->key_edit));
-    wchar_t *key_w = (wchar_t*)g_utf8_to_ucs4(key, 256, NULL, NULL, &error);
-    long key_len = delete_all_non_russians_chars(key_w);
+    const char *raw_key = gtk_editable_get_text(GTK_EDITABLE(data->key_edit));
+    wchar_t *key = (wchar_t*)g_utf8_to_ucs4(raw_key, 256, NULL, NULL, &error);
+    const int raw_key_len = (int)wcslen(key);
+    const int key_len = delete_all_non_russians_chars(key);
+    if (0 < key_len && key_len != raw_key_len)
+    {
+        EntryDeco_MarkEntryRowAsWarning(
+            ADW_ENTRY_ROW(data->key_edit),
+            VALP_STR_NON_VALID_CHARS_IN_KEY_WARNING
+            );
+    }
 
-    Crypto_VigenereAlgorithm_Decode(
-        data->vigenere_algorithm,
-        (int)input_len, input_w,
-        (int)key_len, key_w,
-        output);
+    if (0 < input_len && 0 < key_len)
+    {
+        Crypto_VigenereAlgorithm_Decode(
+            data->vigenere_algorithm,
+            (int)input_len, input,
+            (int)key_len, key,
+            output
+            );
 
-    char *output_c = g_ucs4_to_utf8((gunichar *)output, 256, NULL, NULL, &error);
-    gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output_c);
+        char *output_c = g_ucs4_to_utf8((gunichar *)output, 256, NULL, NULL, &error);
+        gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output_c);
 
-    char *key_out_c = g_ucs4_to_utf8((gunichar *)data->vigenere_algorithm->process_key, 256, NULL, NULL, &error);
-    gtk_editable_set_text(GTK_EDITABLE(data->used_key_edit), key_out_c);
+        char *key_out_c = g_ucs4_to_utf8((gunichar *)data->vigenere_algorithm->process_key, 256, NULL, NULL, &error);
+        gtk_editable_set_text(GTK_EDITABLE(data->used_key_edit), key_out_c);
 
-    free(input_w);
-    free(key_w);
-    free(output_c);
-    free(key_out_c);
+        free(output_c);
+        free(key_out_c);
+    } else
+    {
+        if (0 == raw_input_len)
+        {
+            EntryDeco_MarkEntryRowAsError(
+                ADW_ENTRY_ROW(data->text_edit),
+                VALP_STR_EMPTY_ENTRY_ERROR
+                );
+        } else if (0 == input_len)
+        {
+            EntryDeco_MarkEntryRowAsError(
+                ADW_ENTRY_ROW(data->text_edit),
+                VALP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR
+                );
+        }
+
+        if (0 == raw_key_len)
+        {
+            EntryDeco_MarkEntryRowAsError(
+                ADW_ENTRY_ROW(data->key_edit),
+                VALP_STR_EMPTY_ENTRY_ERROR
+                );
+        } else if (0 == key_len)
+        {
+            EntryDeco_MarkEntryRowAsError(
+                ADW_ENTRY_ROW(data->key_edit),
+                VALP_STR_NO_VALID_CHARS_IN_KEY_ERROR
+                );
+        }
+    }
+
+    free(input);
+    free(key);
 }
 
 static void on_decode_pressed(GtkWidget *widget, gpointer user_data)
@@ -116,6 +165,11 @@ static void on_decode_pressed(GtkWidget *widget, gpointer user_data)
     free(key_w);
     free(output_c);
     free(key_out_c);
+}
+
+static void on_entry_changed(GtkWidget *widget, gpointer user_data)
+{
+    EntryDeco_ClearRowDecorations(ADW_ENTRY_ROW(widget));
 }
 
 static void on_clear_pressed(GtkWidget *widget, gpointer user_data)
@@ -156,83 +210,54 @@ void vigenere_algorithm_page_create(struct AppPage *page, GtkWidget *window)
     }
     gtk_grid_attach(GTK_GRID(container), label, 0, 0, 24, 1);
 
-    GtkWidget *key_edit_label = gtk_label_new("Ключ:");
-    gtk_label_set_xalign(GTK_LABEL(key_edit_label), 0);
-    {
-        PangoAttrList *key_edit_label_attrlist = pango_attr_list_new();
-        PangoFontDescription *key_edit_label_attrlist_font_desc = pango_font_description_new();
-        pango_font_description_set_size(key_edit_label_attrlist_font_desc, 14 * PANGO_SCALE);
-        pango_font_description_set_weight(key_edit_label_attrlist_font_desc, PANGO_WEIGHT_BOLD);
-        PangoAttribute *key_edit_label_attrlist_attr = pango_attr_font_desc_new(key_edit_label_attrlist_font_desc);
-        pango_attr_list_insert(key_edit_label_attrlist, key_edit_label_attrlist_attr);
-        gtk_label_set_attributes(GTK_LABEL(key_edit_label), key_edit_label_attrlist);
-    }
-    gtk_grid_attach(GTK_GRID(container), key_edit_label, 0, 1, 2, 1);
-    data->key_edit = gtk_entry_new();
-    gtk_grid_attach(GTK_GRID(container), data->key_edit, 2, 1, 22, 1);
+    data->key_edit = adw_entry_row_new();
+    gtk_widget_add_css_class(data->key_edit, "card");
+    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->key_edit), "Ключ");
+    GtkWidget *key_edit_icon = gtk_image_new_from_icon_name("dialog-password");
+    adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->key_edit), key_edit_icon);
+    gtk_grid_attach(GTK_GRID(container), data->key_edit, 0, 1, 24, 1);
+    g_signal_connect(G_OBJECT(data->key_edit), "changed", G_CALLBACK(on_entry_changed), data);
 
-    GtkWidget *text_edit_label = gtk_label_new("Исходный текст:");
-    gtk_label_set_xalign(GTK_LABEL(text_edit_label), 0);
-    {
-        PangoAttrList *text_edit_label_attrlist = pango_attr_list_new();
-        PangoFontDescription *text_edit_label_attrlist_font_desc = pango_font_description_new();
-        pango_font_description_set_size(text_edit_label_attrlist_font_desc, 14 * PANGO_SCALE);
-        pango_font_description_set_weight(text_edit_label_attrlist_font_desc, PANGO_WEIGHT_BOLD);
-        PangoAttribute *text_edit_label_attrlist_attr = pango_attr_font_desc_new(text_edit_label_attrlist_font_desc);
-        pango_attr_list_insert(text_edit_label_attrlist, text_edit_label_attrlist_attr);
-        gtk_label_set_attributes(GTK_LABEL(text_edit_label), text_edit_label_attrlist);
-    }
-    gtk_grid_attach(GTK_GRID(container), text_edit_label, 0, 2, 24, 1);
-    data->text_edit = gtk_entry_new();
-    gtk_entry_set_max_length(GTK_ENTRY(data->text_edit), 256);
-    gtk_grid_attach(GTK_GRID(container), data->text_edit, 0, 3, 22, 1);
-    GtkWidget *text_selection_btn = gtk_button_new_with_label("Файл...");
-    gtk_grid_attach(GTK_GRID(container), text_selection_btn, 22, 3, 2, 1);
+    data->text_edit = adw_entry_row_new();
+    gtk_widget_add_css_class(data->text_edit, "card");
+    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->text_edit), "Исходный текст");
+    GtkWidget *text_edit_icon = gtk_image_new_from_icon_name("font-x-generic-symbolic");
+    adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->text_edit), text_edit_icon);
+    adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->text_edit), 256);
+    gtk_grid_attach(GTK_GRID(container), data->text_edit, 0, 2, 22, 1);
+    g_signal_connect(G_OBJECT(data->text_edit), "changed", G_CALLBACK(on_entry_changed), data);
+
+    GtkWidget *text_selection_btn = gtk_button_new_with_icon_and_label("folder-open-symbolic", "Файл...", 8);
+    gtk_grid_attach(GTK_GRID(container), text_selection_btn, 22, 2, 2, 1);
     g_signal_connect(G_OBJECT(text_selection_btn), "clicked", G_CALLBACK(on_file_open_pressed), page);
 
-    GtkWidget *summary_edit_label = gtk_label_new("Итоговый текст:");
-    gtk_label_set_xalign(GTK_LABEL(summary_edit_label), 0);
-    {
-        PangoAttrList *summary_edit_label_attrlist = pango_attr_list_new();
-        PangoFontDescription *summary_edit_label_attrlist_font_desc = pango_font_description_new();
-        pango_font_description_set_size(summary_edit_label_attrlist_font_desc, 14 * PANGO_SCALE);
-        pango_font_description_set_weight(summary_edit_label_attrlist_font_desc, PANGO_WEIGHT_BOLD);
-        PangoAttribute *summary_edit_label_attrlist_attr = pango_attr_font_desc_new(summary_edit_label_attrlist_font_desc);
-        pango_attr_list_insert(summary_edit_label_attrlist, summary_edit_label_attrlist_attr);
-        gtk_label_set_attributes(GTK_LABEL(summary_edit_label), summary_edit_label_attrlist);
-    }
-    gtk_grid_attach(GTK_GRID(container), summary_edit_label, 0, 4, 24, 1);
-    data->summary_edit = gtk_entry_new();
+    data->summary_edit = adw_entry_row_new();
+    gtk_widget_add_css_class(data->summary_edit, "card");
+    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->summary_edit), "Итоговый текст");
+    GtkWidget *summary_edit_icon = gtk_image_new_from_icon_name("media-playlist-shuffle");
+    adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->summary_edit), summary_edit_icon);
     gtk_editable_set_editable(GTK_EDITABLE(data->summary_edit), FALSE);
-    gtk_grid_attach(GTK_GRID(container), data->summary_edit, 0, 5, 24, 1);
+    gtk_grid_attach(GTK_GRID(container), data->summary_edit, 0, 3, 24, 1);
 
-    GtkWidget *used_key_edit_label = gtk_label_new("Прогрессивный ключ, полученный из оригинального:");
-    gtk_label_set_xalign(GTK_LABEL(used_key_edit_label), 0);
-    {
-        PangoAttrList *used_key_edit_label_attrlist = pango_attr_list_new();
-        PangoFontDescription *used_key_edit_label_attrlist_font_desc = pango_font_description_new();
-        pango_font_description_set_size(used_key_edit_label_attrlist_font_desc, 14 * PANGO_SCALE);
-        pango_font_description_set_weight(used_key_edit_label_attrlist_font_desc, PANGO_WEIGHT_BOLD);
-        PangoAttribute *used_key_edit_label_attrlist_attr = pango_attr_font_desc_new(used_key_edit_label_attrlist_font_desc);
-        pango_attr_list_insert(used_key_edit_label_attrlist, used_key_edit_label_attrlist_attr);
-        gtk_label_set_attributes(GTK_LABEL(used_key_edit_label), used_key_edit_label_attrlist);
-    }
-    gtk_grid_attach(GTK_GRID(container), used_key_edit_label, 0, 6, 24, 1);
-    data->used_key_edit = gtk_entry_new();
+    data->used_key_edit = adw_entry_row_new();
+    gtk_widget_add_css_class(data->used_key_edit, "card");
+    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->used_key_edit), "Прогрессивный ключ, полученный из оригинального");
+    GtkWidget *used_key_edit_icon = gtk_image_new_from_icon_name("input-dialpad");
+    adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->used_key_edit), used_key_edit_icon);
     gtk_editable_set_editable(GTK_EDITABLE(data->used_key_edit), FALSE);
-    gtk_grid_attach(GTK_GRID(container), data->used_key_edit, 0, 7, 24, 1);
+    gtk_grid_attach(GTK_GRID(container), data->used_key_edit, 0, 4, 24, 1);
 
     // Bottom
-    GtkWidget *encode_btn = gtk_button_new_with_label("Шифровать");
-    gtk_grid_attach(GTK_GRID(container), encode_btn, 0, 12, 10, 1);
+    GtkWidget *encode_btn = gtk_button_new_with_icon_and_label("changes-prevent", "Шифровать", 8);
+    gtk_grid_attach(GTK_GRID(container), encode_btn, 0, 5, 10, 1);
     g_signal_connect(G_OBJECT(encode_btn), "clicked", G_CALLBACK(on_encode_pressed), page);
 
-    GtkWidget *decode_btn = gtk_button_new_with_label("Дешифровать");
-    gtk_grid_attach(GTK_GRID(container), decode_btn, 10, 12, 10, 1);
+    GtkWidget *decode_btn = gtk_button_new_with_icon_and_label("changes-allow", "Дешифровать", 8);
+    gtk_grid_attach(GTK_GRID(container), decode_btn, 10, 5, 10, 1);
     g_signal_connect(decode_btn, "clicked", G_CALLBACK(on_decode_pressed), page);
 
-    GtkWidget *clear_btn = gtk_button_new_with_label("Очистить");
-    gtk_grid_attach(GTK_GRID(container), clear_btn, 20, 12, 4, 1);
+    GtkWidget *clear_btn = gtk_button_new_with_icon_and_label("edit-clear", "Очистить", 8);
+    gtk_grid_attach(GTK_GRID(container), clear_btn, 20, 5, 4, 1);
     g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_clear_pressed), page);
 }
 

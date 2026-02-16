@@ -12,6 +12,7 @@ add_executable(Task1
         "Task 1/pages/page_rotation_matrix.c"
         "Task 1/pages/page_vigenere_algorithm.c"
         "GTK Tools/string_matrix/string_matrix.c"
+        "GTK Tools/entry_deco/entry_deco.c"
 )
 target_link_libraries(Task1
         PRIVATE

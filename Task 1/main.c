@@ -1,6 +1,7 @@
 #include <gtk/gtk.h>
 #include <adwaita.h>
 #include "pages/pages.h"
+#include "strings/ru_strings.h"
 
 #define MATRIX_LENGTH 4
 #define gtk_widget_set_margin(widget, margin)\
@@ -59,7 +60,6 @@ static void on_activate(GtkApplication *app, gpointer user_data)
     rotation_matrix_page.on_create(&rotation_matrix_page, GTK_WIDGET(window));
     gtk_stack_add_titled(GTK_STACK(stack), rotation_matrix_page.page, "rotation_matrix_page", "Поворачивающаяся решётка");
 
-    // Pages: Vigenere algorithm
     vigenere_algorithm_page.on_create(&vigenere_algorithm_page, GTK_WIDGET(window));
     gtk_stack_add_titled(GTK_STACK(stack), vigenere_algorithm_page.page, "vigenere_algorithm_page", "Алгоритм Виженера");
 

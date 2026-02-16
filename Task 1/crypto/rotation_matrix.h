@@ -41,27 +41,29 @@ void Crypto_RotationMatrix_Free(Crypto_RotationMatrix** matrix)
 int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, const char* string, char* out)
 {
     int processed = 0;
-    int out_idx = 0;
+    int out_index = 0;
 
     while (processed < len) {
-        for (int r = 0; r < manager->matrix_length; r++) {
-            for (int c = 0; c < manager->matrix_length; c++) {
-                if (processed < len) {
+        for (int r = 0; r < manager->matrix_length; r++)
+        {
+            for (int c = 0; c < manager->matrix_length; c++)
+            {
+                if (processed < len)
                     manager->process_matrix[r][c] = string[processed++];
-                } else {
+                else
                     manager->process_matrix[r][c] = ' ';
-                }
             }
         }
 
         GridPoint points[4] = { {0,0}, {1,3}, {2,2}, {3,1} };
 
-        for (int rot = 0; rot < 4; rot++) {
-            for (int i = 0; i < 4; i++) {
-                out[out_idx++] = manager->process_matrix[points[i].r][points[i].c];
-            }
+        for (int rot = 0; rot < 4; rot++)
+        {
+            for (int i = 0; i < 4; i++)
+                out[out_index++] = manager->process_matrix[points[i].r][points[i].c];
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++)
+            {
                 int temp_r = points[i].r;
                 points[i].r = points[i].c;
                 points[i].c = manager->matrix_length - 1 - temp_r;
@@ -69,29 +71,34 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
         }
     }
 
-    out[out_idx] = '\0';
+    out[out_index] = '\0';
     return 0;
 }
 int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, const char* string, char* out)
 {
     int processed = 0;
-    int out_idx = 0;
+    int out_index = 0;
 
-    while (processed < len) {
+    while (processed < len)
+    {
         for (int r = 0; r < manager->matrix_length; r++)
             memset(manager->process_matrix[r], ' ', manager->matrix_length);
 
         GridPoint points[4] = { {0,0}, {1,3}, {2,2}, {3,1} };
 
-        for (int rot = 0; rot < 4; rot++) {
+        for (int rot = 0; rot < 4; rot++)
+        {
             for (int i = 0; i < 4; i++)
-                if (processed < len) {
+                if (processed < len)
                     manager->process_matrix[points[i].r][points[i].c] = string[processed++];
-                } else {
-                    manager->process_matrix[points[i].r][points[i].c] = ' ';
+                else
+                {
+                    manager->process_matrix[points[i].r][points[i].c] = 'A' + (processed - len);
+                    processed++;
                 }
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++)
+            {
                 int temp_r = points[i].r;
                 points[i].r = points[i].c;
                 points[i].c = manager->matrix_length - 1 - temp_r;
@@ -100,10 +107,10 @@ int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, 
 
         for (int r = 0; r < manager->matrix_length; r++)
             for (int c = 0; c < manager->matrix_length; c++)
-                out[out_idx++] = manager->process_matrix[r][c];
+                out[out_index++] = manager->process_matrix[r][c];
     }
 
-    out[out_idx] = '\0';
+    out[out_index] = '\0';
     return 0;
 }
 
