@@ -85,7 +85,7 @@ static void on_activate(GtkApplication *app, gpointer user_data)
     // Pages: rotation matrix
     rotation_matrix_page.on_create(&rotation_matrix_page, GTK_WIDGET(window));
     gtk_stack_add_titled(GTK_STACK(stack), rotation_matrix_page.page, "rotation_matrix_page", RTMP_STR_TITLE);
-
+    // Pages: Vigenere algorithm
     vigenere_algorithm_page.on_create(&vigenere_algorithm_page, GTK_WIDGET(window));
     gtk_stack_add_titled(GTK_STACK(stack), vigenere_algorithm_page.page, "vigenere_algorithm_page", VALP_STR_TITLE);
 

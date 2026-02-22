@@ -63,6 +63,9 @@ static void update_steps_page(struct RotationMatrixData *data)
     gtk_widget_set_sensitive(data->string_matrix_prev_step_btn, data->curr_matrix_step != 0);
     gtk_widget_set_sensitive(data->string_matrix_next_step_btn, data->curr_matrix_step < MATRIX_STEPS_COUNT);
 
+    string_matrix_resize_rows(data->matrix, data->rotation_matrix->matrix_length);
+    string_matrix_resize_columns(data->matrix, data->rotation_matrix->matrix_length);
+
     char *text = strdup(RTMP_STR_MATRIX_STEP_TITLE);
     sprintf(text, RTMP_STR_MATRIX_STEP_TITLE, data->curr_matrix_step + 1, MATRIX_STEPS_COUNT);
     gtk_label_set_text(GTK_LABEL(data->string_matrix_step_label), text);
@@ -249,7 +252,7 @@ void rotation_matrix_page_create(struct AppPage *page, GtkWidget *window)
     adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->text_edit), RTMP_STR_ENTRY_SOURCE_TEXT_TITLE);
     GtkWidget *text_edit_icon = gtk_image_new_from_icon_name("font-x-generic-symbolic");
     adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->text_edit), text_edit_icon);
-    adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->text_edit), 16);
+    adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->text_edit), 256);
     gtk_grid_attach(GTK_GRID(container), data->text_edit, 0, 1, 20, 1);
     g_signal_connect(G_OBJECT(data->text_edit), "changed", G_CALLBACK(on_entry_changed), page);
 
@@ -346,7 +349,7 @@ void rotation_matrix_page_open_response(AppPage *page, GObject *original_object,
         FILE *f = fopen(path, "r");
         char text[257];
         memset(text, 0, sizeof(text));
-        fgets(text, 16, f);
+        fgets(text, 256, f);
         gtk_editable_set_text(GTK_EDITABLE(data->text_edit), text);
 
         fclose(f);
