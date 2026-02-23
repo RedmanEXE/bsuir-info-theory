@@ -28,14 +28,6 @@ typedef struct {
     int c;
 } GridPoint;
 
-int Crypto_RotationMatrix_ComparePoints(const void* a, const void* b)
-{
-    const GridPoint *p1 = (const GridPoint *)a;
-    const GridPoint *p2 = (const GridPoint *)b;
-    if (p1->r != p2->r) return p1->r - p2->r;
-    return p1->c - p2->c;
-}
-
 void Crypto_RotationMatrix_Resize(Crypto_RotationMatrix* manager, const int new_len)
 {
     if (manager == NULL || manager->matrix_length == new_len)
@@ -168,8 +160,6 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
                 active_points[num_base_holes].c = center_c;
             }
 
-            qsort(active_points, active_count, sizeof(GridPoint), Crypto_RotationMatrix_ComparePoints);
-
             for (int i = 0; i < active_count; i++)
             {
                 out[out_index++] = manager->process_matrix[active_points[i].r][active_points[i].c];
@@ -236,8 +226,6 @@ int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, 
                 active_points[num_base_holes].r = center_r;
                 active_points[num_base_holes].c = center_c;
             }
-
-            qsort(active_points, active_count, sizeof(GridPoint), Crypto_RotationMatrix_ComparePoints);
 
             for (int i = 0; i < active_count; i++)
             {
