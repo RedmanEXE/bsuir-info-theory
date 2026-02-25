@@ -85,6 +85,42 @@ static void update_steps_page(struct RotationMatrixData *data)
         }
 }
 
+static void process_input_values(struct RotationMatrixData *data, int decode)
+{
+    const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
+    const int raw_input_len = (int)strlen(raw_input);
+    char *prop_input = strdup(raw_input);
+    const int prop_input_len = (int)delete_all_non_english_chars(prop_input);
+    char output[257];
+
+    if (0 < prop_input_len && prop_input_len != raw_input_len)
+    {
+        EntryDeco_MarkEntryRowAsWarning(
+            ADW_ENTRY_ROW(data->text_edit),
+            RTMP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING
+            );
+    }
+
+    if (0 != prop_input_len)
+    {
+        if (!decode)
+            Crypto_RotationMatrix_Encode(data->rotation_matrix, prop_input_len, prop_input, output);
+        else
+            Crypto_RotationMatrix_Decode(data->rotation_matrix, prop_input_len, prop_input, output);
+        gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output);
+
+        update_steps_page(data);
+    } else
+    {
+        EntryDeco_MarkEntryRowAsError(
+            ADW_ENTRY_ROW(data->text_edit),
+            (0 == raw_input_len) ? RTMP_STR_EMPTY_SOURCE_TEXT_ERROR : RTMP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR
+            );
+    }
+
+    free(prop_input);
+}
+
 static void on_file_open_pressed(GtkWidget *widget, gpointer user_data)
 {
     open_file_open_dialog(user_data);
@@ -98,71 +134,13 @@ static void on_file_save_pressed(GtkWidget *widget, gpointer user_data)
 static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
 {
     struct RotationMatrixData *data = ((AppPage *)user_data)->data;
-
-    const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
-    const int raw_input_len = (int)strlen(raw_input);
-    char *prop_input = strdup(raw_input);
-    const int prop_input_len = (int)delete_all_non_english_chars(prop_input);
-    char output[257];
-
-    if (0 < prop_input_len && prop_input_len != raw_input_len)
-    {
-        EntryDeco_MarkEntryRowAsWarning(
-            ADW_ENTRY_ROW(data->text_edit),
-            RTMP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING
-            );
-    }
-
-    if (0 != prop_input_len)
-    {
-        Crypto_RotationMatrix_Encode(data->rotation_matrix, prop_input_len, prop_input, output);
-        gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output);
-
-        update_steps_page(data);
-    } else
-    {
-        EntryDeco_MarkEntryRowAsError(
-            ADW_ENTRY_ROW(data->text_edit),
-            (0 == raw_input_len) ? RTMP_STR_EMPTY_SOURCE_TEXT_ERROR : RTMP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR
-            );
-    }
-
-    free(prop_input);
+    process_input_values(data, 0);
 }
 
 static void on_decode_pressed(GtkWidget *widget, gpointer user_data)
 {
     struct RotationMatrixData *data = ((AppPage *)user_data)->data;
-
-    const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
-    const int raw_input_len = (int)strlen(raw_input);
-    char *prop_input = strdup(raw_input);
-    const int prop_input_len = (int)delete_all_non_english_chars(prop_input);
-    char output[257];
-
-    if (0 < prop_input_len && prop_input_len != raw_input_len)
-    {
-        EntryDeco_MarkEntryRowAsWarning(
-            ADW_ENTRY_ROW(data->text_edit),
-            RTMP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING
-            );
-    }
-
-    if (0 != prop_input_len)
-    {
-        Crypto_RotationMatrix_Decode(data->rotation_matrix, prop_input_len, prop_input, output);
-        gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output);
-
-        update_steps_page(data);
-    } else
-    {
-        EntryDeco_MarkEntryRowAsError(
-            ADW_ENTRY_ROW(data->text_edit),
-            (0 == raw_input_len) ? RTMP_STR_EMPTY_SOURCE_TEXT_ERROR : RTMP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR
-            );
-    }
-
-    free(prop_input);
+    process_input_values(data, 1);
 }
 
 static void on_entry_changed(GtkWidget *widget, gpointer user_data)

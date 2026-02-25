@@ -36,12 +36,18 @@ static int delete_all_non_russians_chars(wchar_t* str)
     int shift = 0, final_len = len;
     for (int i = 0; i < len; i++)
     {
-        if ((L'А' > str[i] || L'Я' < str[i]) && (L'а' > str[i] || L'я' < str[i]))
+        if ((L'А' > str[i] || L'Я' < str[i]) && (L'а' > str[i] || L'я' < str[i]) && (L'ё' != str[i]) && (L'Ё' != str[i]))
         {
             shift++;
             final_len--;
             continue;
         }
+
+        if (L'а' <= str[i] && L'я' >= str[i])
+            str[i] += L'A' - L'a';
+
+        if (L'ё' == str[i])
+            str[i] = L'Ё';
 
         if (!shift)
             continue;
@@ -63,45 +69,33 @@ static void update_crypt_matrix(
     string_matrix_resize_columns(data->crypt_matrix, input_len);
     for (int i = 0; i < input_len; i++)
     {
-        char *text = g_ucs4_to_utf8((gunichar *)&input[i], 1, NULL, NULL, NULL);
+        char *text = wchar_to_utf8(&input[i], 1, NULL);
         string_matrix_set_cell(data->crypt_matrix, 0, i, text, STRING_MATRIX_CELL_NORMAL);
         g_free(text);
     }
 
     for (int i = 0; i < input_len; i++)
     {
-        char *text = g_ucs4_to_utf8((gunichar *)&key[i], 1, NULL, NULL, NULL);
+        char *text = wchar_to_utf8(&key[i], 1, NULL);
         string_matrix_set_cell(data->crypt_matrix, 1, i, text, STRING_MATRIX_CELL_NORMAL);
         g_free(text);
     }
 
     for (int i = 0; i < input_len; i++)
     {
-        char *text = g_ucs4_to_utf8((gunichar *)&output[i], 1, NULL, NULL, NULL);
+        char *text = wchar_to_utf8(&output[i], 1, NULL);
         string_matrix_set_cell(data->crypt_matrix, 2, i, text, STRING_MATRIX_CELL_BOLD);
         g_free(text);
     }
 }
 
-static void on_file_open_pressed(GtkWidget *widget, gpointer user_data)
+static void process_input_values(struct VigenereAlgorithmData *data, int decode)
 {
-    open_file_open_dialog(user_data);
-}
-
-static void on_file_save_pressed(GtkWidget *widget, gpointer user_data)
-{
-    open_file_save_dialog(user_data);
-}
-
-static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
-{
-    struct VigenereAlgorithmData *data = ((AppPage *) user_data)->data;
-    GError *error = NULL;
     wchar_t output[255];
 
     const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
-    wchar_t *input = (wchar_t*)g_utf8_to_ucs4(raw_input, 256, NULL, NULL, &error);
-    const int raw_input_len = (int)wcslen(input);
+    long raw_input_len;
+    wchar_t *input = (wchar_t*)utf8_to_wchar(raw_input, -1, &raw_input_len);
     const int input_len = delete_all_non_russians_chars(input);
     if (0 < input_len && input_len != raw_input_len)
     {
@@ -112,8 +106,8 @@ static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
     }
 
     const char *raw_key = gtk_editable_get_text(GTK_EDITABLE(data->key_edit));
-    wchar_t *key = (wchar_t*)g_utf8_to_ucs4(raw_key, 256, NULL, NULL, &error);
-    const int raw_key_len = (int)wcslen(key);
+    long raw_key_len;
+    wchar_t *key = (wchar_t*)utf8_to_wchar(raw_key, -1, &raw_key_len);
     const int key_len = delete_all_non_russians_chars(key);
     if (0 < key_len && key_len != raw_key_len)
     {
@@ -125,17 +119,25 @@ static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
 
     if (0 < input_len && 0 < key_len)
     {
-        Crypto_VigenereAlgorithm_Encode(
-            data->vigenere_algorithm,
-            (int)input_len, input,
-            (int)key_len, key,
-            output
-            );
+        if (!decode)
+            Crypto_VigenereAlgorithm_Encode(
+                data->vigenere_algorithm,
+                (int)input_len, input,
+                (int)key_len, key,
+                output
+                );
+        else
+            Crypto_VigenereAlgorithm_Decode(
+                data->vigenere_algorithm,
+                (int)input_len, input,
+                (int)key_len, key,
+                output
+                );
 
-        char *output_c = g_ucs4_to_utf8((gunichar *)output, 256, NULL, NULL, &error);
+        char *output_c = wchar_to_utf8(output, -1, NULL);
         gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output_c);
 
-        char *key_out_c = g_ucs4_to_utf8((gunichar *)data->vigenere_algorithm->process_key, 256, NULL, NULL, &error);
+        char *key_out_c = wchar_to_utf8(data->vigenere_algorithm->process_key, -1, NULL);
         gtk_editable_set_text(GTK_EDITABLE(data->used_key_edit), key_out_c);
 
         update_crypt_matrix(data, input, input_len, data->vigenere_algorithm->process_key, output);
@@ -177,88 +179,26 @@ static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
     free(key);
 }
 
+static void on_file_open_pressed(GtkWidget *widget, gpointer user_data)
+{
+    open_file_open_dialog(user_data);
+}
+
+static void on_file_save_pressed(GtkWidget *widget, gpointer user_data)
+{
+    open_file_save_dialog(user_data);
+}
+
+static void on_encode_pressed(GtkWidget *widget, gpointer user_data)
+{
+    struct VigenereAlgorithmData *data = ((AppPage *) user_data)->data;
+    process_input_values(data, 0);
+}
+
 static void on_decode_pressed(GtkWidget *widget, gpointer user_data)
 {
     struct VigenereAlgorithmData *data = ((AppPage *) user_data)->data;
-    GError *error = NULL;
-    wchar_t output[255];
-
-    const char *raw_input = gtk_editable_get_text(GTK_EDITABLE(data->text_edit));
-    wchar_t *input = (wchar_t*)g_utf8_to_ucs4(raw_input, 256, NULL, NULL, &error);
-    const int raw_input_len = (int)wcslen(input);
-    const int input_len = delete_all_non_russians_chars(input);
-    if (0 < input_len && input_len != raw_input_len)
-    {
-        EntryDeco_MarkEntryRowAsWarning(
-            ADW_ENTRY_ROW(data->text_edit),
-            VALP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING
-            );
-    }
-
-    const char *raw_key = gtk_editable_get_text(GTK_EDITABLE(data->key_edit));
-    wchar_t *key = (wchar_t*)g_utf8_to_ucs4(raw_key, 256, NULL, NULL, &error);
-    const int raw_key_len = (int)wcslen(key);
-    const int key_len = delete_all_non_russians_chars(key);
-    if (0 < key_len && key_len != raw_key_len)
-    {
-        EntryDeco_MarkEntryRowAsWarning(
-            ADW_ENTRY_ROW(data->key_edit),
-            VALP_STR_NON_VALID_CHARS_IN_KEY_WARNING
-            );
-    }
-
-    if (0 < input_len && 0 < key_len)
-    {
-        Crypto_VigenereAlgorithm_Decode(
-            data->vigenere_algorithm,
-            (int)input_len, input,
-            (int)key_len, key,
-            output
-            );
-
-        char *output_c = g_ucs4_to_utf8((gunichar *)output, 256, NULL, NULL, &error);
-        gtk_editable_set_text(GTK_EDITABLE(data->summary_edit), output_c);
-
-        char *key_out_c = g_ucs4_to_utf8((gunichar *)data->vigenere_algorithm->process_key, 256, NULL, NULL, &error);
-        gtk_editable_set_text(GTK_EDITABLE(data->used_key_edit), key_out_c);
-
-        update_crypt_matrix(data, input, input_len, data->vigenere_algorithm->process_key, output);
-
-        free(output_c);
-        free(key_out_c);
-    } else
-    {
-        if (0 == raw_input_len)
-        {
-            EntryDeco_MarkEntryRowAsError(
-                ADW_ENTRY_ROW(data->text_edit),
-                VALP_STR_EMPTY_ENTRY_ERROR
-                );
-        } else if (0 == input_len)
-        {
-            EntryDeco_MarkEntryRowAsError(
-                ADW_ENTRY_ROW(data->text_edit),
-                VALP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR
-                );
-        }
-
-        if (0 == raw_key_len)
-        {
-            EntryDeco_MarkEntryRowAsError(
-                ADW_ENTRY_ROW(data->key_edit),
-                VALP_STR_EMPTY_ENTRY_ERROR
-                );
-        } else if (0 == key_len)
-        {
-            EntryDeco_MarkEntryRowAsError(
-                ADW_ENTRY_ROW(data->key_edit),
-                VALP_STR_NO_VALID_CHARS_IN_KEY_ERROR
-                );
-        }
-    }
-
-    free(input);
-    free(key);
+    process_input_values(data, 1);
 }
 
 static void on_entry_changed(GtkWidget *widget, gpointer user_data)
