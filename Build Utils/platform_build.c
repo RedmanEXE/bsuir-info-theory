@@ -3,7 +3,9 @@
 //
 
 #include <gtk/gtk.h>
+#if defined(__APPLE__) && defined(IS_MAC_BUNDLE)
 #include <mach-o/dyld.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
