@@ -2,6 +2,7 @@
 #include <adwaita.h>
 #include "pages/pages.h"
 #include "strings/ru_strings.h"
+#include "../Build Utils/platform_build.h"
 
 #define MATRIX_LENGTH 4
 #define gtk_widget_set_margin(widget, margin)\
@@ -98,6 +99,8 @@ static void on_activate(GtkApplication *app, gpointer user_data)
 
 int main(int argc, char **argv)
 {
+    setup_env();
+
     AdwApplication *app = adw_application_new("dev.rexe.infoth.Task1", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
 

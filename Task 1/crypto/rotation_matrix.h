@@ -28,6 +28,16 @@ typedef struct {
     int c;
 } GridPoint;
 
+void Crypto_RotationMatrix_CleanUpCachedSteps(Crypto_RotationMatrix* manager)
+{
+    if (manager == NULL)
+        return;
+
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < manager->matrix_length; j++)
+            memset(manager->steps[i][j], ' ', manager->matrix_length);
+}
+
 void Crypto_RotationMatrix_Resize(Crypto_RotationMatrix* manager, const int new_len)
 {
     if (manager == NULL || manager->matrix_length == new_len)
@@ -121,6 +131,7 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
     while (N * N < len) N++;
 
     Crypto_RotationMatrix_Resize(manager, N);
+    Crypto_RotationMatrix_CleanUpCachedSteps(manager);
 
     int processed = 0;
     int out_index = 0;
@@ -164,10 +175,10 @@ int Crypto_RotationMatrix_Decode(Crypto_RotationMatrix* manager, const int len, 
             {
                 out[out_index++] = manager->process_matrix[active_points[i].r][active_points[i].c];
 
-                for (int step = rot; step < 4; step++)
+                for (int step = (3 - rot); step < 4; step++)
                 {
-                    manager->steps[step][active_points[i].r][active_points[i].c].c = manager->process_matrix[active_points[i].r][active_points[i].c];
-                    manager->steps[step][active_points[i].r][active_points[i].c].is_new = (step == rot);
+                    manager->steps[3 - step][active_points[i].r][active_points[i].c].c = manager->process_matrix[active_points[i].r][active_points[i].c];
+                    manager->steps[3 - step][active_points[i].r][active_points[i].c].is_new = ((3 - step) == rot);
                 }
             }
 
@@ -196,6 +207,7 @@ int Crypto_RotationMatrix_Encode(Crypto_RotationMatrix* manager, const int len, 
     while (N * N < len) N++;
 
     Crypto_RotationMatrix_Resize(manager, N);
+    Crypto_RotationMatrix_CleanUpCachedSteps(manager);
 
     int processed = 0;
     int out_index = 0;
