@@ -230,7 +230,6 @@ void rotation_matrix_page_create(struct AppPage *page, GtkWidget *window)
     adw_preferences_row_set_title(ADW_PREFERENCES_ROW(data->text_edit), RTMP_STR_ENTRY_SOURCE_TEXT_TITLE);
     GtkWidget *text_edit_icon = gtk_image_new_from_icon_name("font-x-generic-symbolic");
     adw_entry_row_add_prefix(ADW_ENTRY_ROW(data->text_edit), text_edit_icon);
-    adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->text_edit), 256);
     gtk_grid_attach(GTK_GRID(container), data->text_edit, 0, 1, 20, 1);
     g_signal_connect(G_OBJECT(data->text_edit), "changed", G_CALLBACK(on_entry_changed), page);
 
