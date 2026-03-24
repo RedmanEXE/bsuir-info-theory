@@ -8,7 +8,7 @@
 #include "strings/ru_strings.h"
 
 static GtkFileDialog *file_dialog;
-static GtkWindow *window;
+static AdwApplicationWindow *window;
 
 static void on_open_file_open_dialog(AppPage *page);
 static void on_open_file_save_dialog(AppPage *page);
@@ -30,33 +30,42 @@ static void on_save_file_dialog_result(GObject *source_object, GAsyncResult *res
 static void on_open_file_open_dialog(AppPage *page)
 {
     gtk_file_dialog_set_title(file_dialog, APP_STR_FILE_OPEN_DIALOG_TITLE);
-    gtk_file_dialog_open(file_dialog, window, NULL, on_open_file_dialog_result, page);
+    gtk_file_dialog_open(file_dialog, GTK_WINDOW(window), NULL, on_open_file_dialog_result, page);
 }
 
 static void on_open_file_save_dialog(AppPage *page)
 {
     gtk_file_dialog_set_title(file_dialog, APP_STR_FILE_SAVE_DIALOG_TITLE);
-    gtk_file_dialog_save(file_dialog, window, NULL, on_save_file_dialog_result, page);
+    gtk_file_dialog_save(file_dialog, GTK_WINDOW(window), NULL, on_save_file_dialog_result, page);
 }
 
 static void on_activate(GtkApplication *app, gpointer user_data)
 {
-    window = GTK_WINDOW(gtk_application_window_new(app));
-    gtk_window_set_title(window, APP_STR_TITLE);
-    gtk_window_set_default_size(window, 500, 200);
+    platform_activate();
+
+    window = ADW_APPLICATION_WINDOW(adw_application_window_new(app));
+    gtk_window_set_title(GTK_WINDOW(window), APP_STR_TITLE);
+    gtk_window_set_default_size(GTK_WINDOW(window), 500, 200);
+
+    GtkWidget *container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    GtkWidget *header = adw_header_bar_new();
+    gtk_box_append(GTK_BOX(container), header);
 
     // Pages: LFSR
     lfsr_page.on_create(&lfsr_page, GTK_WIDGET(window));
 
-    gtk_window_set_child(window, GTK_WIDGET(lfsr_page.page));
-    gtk_window_present(window);
+    gtk_box_append(GTK_BOX(container), lfsr_page.page);
+
+    adw_application_window_set_content(ADW_APPLICATION_WINDOW(window), GTK_WIDGET(container));
+    gtk_window_present(GTK_WINDOW(window));
 }
 
 int main(int argc, char **argv)
 {
     setup_env();
 
-    AdwApplication *app = adw_application_new("dev.rexe.infoth.Task1", G_APPLICATION_DEFAULT_FLAGS);
+    AdwApplication *app = adw_application_new("dev.rexe.infoth.Task2", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
 
     file_dialog = gtk_file_dialog_new();

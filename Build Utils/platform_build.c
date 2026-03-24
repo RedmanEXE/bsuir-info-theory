@@ -2,16 +2,16 @@
 // Created by REXE on 26.02.26.
 //
 
-#include <gtk/gtk.h>
 #if defined(__APPLE__) && defined(IS_MAC_BUNDLE)
 #include <mach-o/dyld.h>
 #endif
 #include <stdlib.h>
-#include <string.h>
+#include <gtk/gtk.h>
 
 void setup_env()
 {
-#if defined(__APPLE__) && defined(IS_MAC_BUNDLE)
+#if defined(__APPLE__)
+#if defined(IS_MAC_BUNDLE)
     // Just some vars need setup (for GTK and Adwaita)
     char path[PATH_MAX];
     uint32_t size = sizeof(path);
@@ -32,5 +32,30 @@ void setup_env()
         snprintf(data_path, sizeof(data_path), "%s/share", resource_path);
         g_setenv("XDG_DATA_DIRS", data_path, TRUE);
     }
+#endif
+#endif
+}
+
+void platform_activate()
+{
+#if defined(__APPLE__)
+    GtkCssProvider *provider = gtk_css_provider_new();
+
+    const char *buttons_css =
+        ".bottom-button-left {"
+        "   border-bottom-left-radius: 18px;"
+        "}"
+        ".bottom-button-right {"
+        "   border-bottom-right-radius: 18px;"
+        "}";
+
+    gtk_css_provider_load_from_string(provider, buttons_css);
+
+    gtk_style_context_add_provider_for_display(
+        gdk_display_get_default(),
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+    g_object_unref(provider);
 #endif
 }
