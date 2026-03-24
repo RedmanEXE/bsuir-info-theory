@@ -352,7 +352,7 @@ void vigenere_algorithm_page_open_response(AppPage *page, GObject *original_obje
         FILE *f = fopen(path, "r");
         char text[256];
         memset(text, 0, sizeof(text));
-        fgets(text, 255, f);
+        fread(text, sizeof(char), 256, f);
         gtk_editable_set_text(GTK_EDITABLE(data->text_edit), text);
 
         fclose(f);

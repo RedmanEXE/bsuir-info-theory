@@ -326,7 +326,7 @@ void rotation_matrix_page_open_response(AppPage *page, GObject *original_object,
         FILE *f = fopen(path, "r");
         char text[257];
         memset(text, 0, sizeof(text));
-        fgets(text, 256, f);
+        fread(text, sizeof(char), 256, f);
         gtk_editable_set_text(GTK_EDITABLE(data->text_edit), text);
 
         fclose(f);

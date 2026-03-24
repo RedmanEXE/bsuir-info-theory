@@ -1,5 +1,5 @@
 //
-// Created by REXE on 13.02.26.
+// Created by REXE on 22.03.26.
 //
 
 #ifndef INFO_THEORY_PAGES_H
@@ -9,7 +9,7 @@
 #include <adwaita.h>
 #include "../../GTK Tools/string_matrix/string_matrix.h"
 #include "../../GTK Tools/entry_deco/entry_deco.h"
-#include "./../strings/ru_strings.h"
+// #include "./../strings/ru_strings.h"
 #include "../../GTK Tools/independent_wchar/independent_wchar.h"
 
 #define gtk_widget_set_margin(widget, margin)\
@@ -43,8 +43,7 @@ typedef struct AppPage
     void (*on_free)(struct AppPage *page);
 } AppPage;
 
-extern AppPage rotation_matrix_page;
-extern AppPage vigenere_algorithm_page;
+extern AppPage lfsr_page;
 extern void (*open_file_open_dialog)(AppPage *page);
 extern void (*open_file_save_dialog)(AppPage *page);
 

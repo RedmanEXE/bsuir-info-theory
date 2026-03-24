@@ -1,0 +1,43 @@
+name: Build macOS DMG (x86-64)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-macos:
+    runs-on: macos-14-large
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install gtk4 libadwaita pkg-config adwaita-icon-theme cmake dylibbundler
+          
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPACK_AS_APP=1 \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DCMAKE_PREFIX_PATH="/usr/local" \
+            -G Ninja
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
+
+      - name: Build project
+        run: |
+          cmake --build build --config Release
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-x86_64
+          path: build/*.dmg
