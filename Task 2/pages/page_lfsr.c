@@ -462,7 +462,7 @@ static void set_info_for_action_row_by_name(GtkWidget *action_row, GtkWidget **i
     adw_action_row_remove(ADW_ACTION_ROW(action_row), *icon_widget);
     if (-1 != dot_pos)
     {
-        char *ext = strndup(basename + dot_pos, basename_len - dot_pos);
+        char *ext = g_strndup(basename + dot_pos, basename_len - dot_pos);
         const char *icon = FileSelector_GetIconByExtension(ext);
 
         *icon_widget = gtk_image_new_from_icon_name(icon);

@@ -1,0 +1,4 @@
+;!@Install@!UTF-8!
+RunProgram="Task1.exe"
+GUIMode="2"
+;!@InstallEnd@!

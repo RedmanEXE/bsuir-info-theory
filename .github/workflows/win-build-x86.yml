@@ -1,0 +1,46 @@
+name: Build Windows SFX (x86-64)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-gtk4
+            mingw-w64-ucrt-x86_64-libadwaita
+            p7zip
+
+      - name: Configure project
+        shell: msys2 {0}
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPACK_AS_APP=ON -DCMAKE_PREFIX_PATH=/ucrt64/
+
+      - name: Build and package
+        shell: msys2 {0}
+        run: |
+          # Собираем проект. Во время POST_BUILD запустится скрипт создания _Installer.exe
+          cmake --build build
+
+      - name: Upload files
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x86_64
+          path: build/*-bundle.exe

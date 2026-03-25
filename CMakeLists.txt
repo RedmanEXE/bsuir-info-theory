@@ -13,16 +13,16 @@ pkg_check_modules(Adwaita REQUIRED IMPORTED_TARGET libadwaita-1)
 function(add_task TARGET_NAME APP_NAME)
     add_executable(${TARGET_NAME} ${ARGN})
     target_link_libraries(${TARGET_NAME}
-            PRIVATE
-            PkgConfig::GTK4
-            PkgConfig::Adwaita
+        PRIVATE
+        PkgConfig::GTK4
+        PkgConfig::Adwaita
     )
 
     if(APPLE AND PACK_AS_APP)
         execute_process(
-                COMMAND xcrun -find vtool
-                OUTPUT_VARIABLE VTOOL_PATH
-                OUTPUT_STRIP_TRAILING_WHITESPACE
+            COMMAND xcrun -find vtool
+            OUTPUT_VARIABLE VTOOL_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 
         if(NOT VTOOL_PATH)
@@ -48,9 +48,9 @@ function(add_task TARGET_NAME APP_NAME)
 
             COMMAND ${VTOOL_PATH} -set-build-version macos 11.0 26.0 -replace -output "$<TARGET_FILE:${TARGET_NAME}>" "$<TARGET_FILE:${TARGET_NAME}>"
             COMMAND dylibbundler -od -b
-                -x "$<TARGET_FILE:${TARGET_NAME}>"
-                -d "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
-                -p "@executable_path/../Frameworks/"
+            -x "$<TARGET_FILE:${TARGET_NAME}>"
+            -d "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
+            -p "@executable_path/../Frameworks/"
 
             COMMAND find "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks" -name "*.dylib" -exec ${VTOOL_PATH} -set-build-version macos 11.0 11.0 -replace -output {} {} "\;"
 
@@ -72,6 +72,73 @@ function(add_task TARGET_NAME APP_NAME)
             COMMAND codesign --force --deep --sign - "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>"
 
             COMMAND hdiutil create -volname "${APP_NAME}" -srcfolder "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>" -ov -format UDZO "${APP_NAME}.dmg"
+        )
+    elseif(WIN32 AND PACK_AS_APP)
+        execute_process(
+            COMMAND pkgconf --variable=prefix gtk4
+            OUTPUT_VARIABLE GTK_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        file(TO_CMAKE_PATH "${GTK_PREFIX}" GTK_PREFIX)
+
+        set(WINDOWS_EXTRAS_DIR "${CMAKE_SOURCE_DIR}/Extras/Windows/${APP_NAME}")
+        set(BUNDLE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_Bundle")
+        set(SFX_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_Installer.exe")
+        set(APP_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/app_${TARGET_NAME}.7z")
+
+        file(TO_NATIVE_PATH "${WINDOWS_EXTRAS_DIR}/7zsd.sfx" NATIVE_SFX_MODULE)
+        file(TO_NATIVE_PATH "${WINDOWS_EXTRAS_DIR}/config.txt" NATIVE_SFX_CONFIG)
+        file(TO_NATIVE_PATH "${APP_ARCHIVE}" NATIVE_APP_7Z)
+        file(TO_NATIVE_PATH "${SFX_OUTPUT}" NATIVE_SFX_OUTPUT)
+
+        set(BUILD_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/build_sfx_${TARGET_NAME}.sh")
+        file(WRITE "${BUILD_SCRIPT}"
+            "#!/bin/bash
+            set -e
+
+            TARGET_FILE=$(cygpath -u \"$1\")
+            BUNDLE_DIR=$(cygpath -u \"$2\")
+            APP_ARCHIVE=$(cygpath -u \"$3\")
+            PREFIX=$(cygpath -u \"$4\")
+            SFX_MODULE=$(cygpath -u \"$5\")
+            SFX_CONFIG=$(cygpath -u \"$6\")
+            SFX_OUTPUT=$(cygpath -u \"$7\")
+
+            rm -rf \"$BUNDLE_DIR\"
+            mkdir -p \"$BUNDLE_DIR/share/glib-2.0/schemas\"
+            mkdir -p \"$BUNDLE_DIR/share/icons\"
+            mkdir -p \"$BUNDLE_DIR/lib/gdk-pixbuf-2.0\"
+
+            cp \"$TARGET_FILE\" \"$BUNDLE_DIR/\"
+            ldd \"$TARGET_FILE\" | grep -i '\\.dll' | awk '{print $3}' | grep -v -i '^/c/windows' | xargs -I {} cp \"{}\" \"$BUNDLE_DIR/\"
+
+            cp \"$PREFIX\"/share/glib-2.0/schemas/org.gtk.gtk4.*.gschema.xml \"$BUNDLE_DIR/share/glib-2.0/schemas/\"
+            glib-compile-schemas \"$BUNDLE_DIR/share/glib-2.0/schemas/\"
+
+            cp -r \"$PREFIX\"/share/icons/Adwaita \"$BUNDLE_DIR/share/icons/\"
+            cp -r \"$PREFIX\"/share/icons/hicolor \"$BUNDLE_DIR/share/icons/\"
+            cp -r \"$PREFIX\"/lib/gdk-pixbuf-2.0/* \"$BUNDLE_DIR/lib/gdk-pixbuf-2.0/\" 2>/dev/null || true
+
+            rm -f \"$APP_ARCHIVE\"
+            cd \"$BUNDLE_DIR\"
+            7z a -t7z -mx=9 \"$APP_ARCHIVE\" * > /dev/null
+
+            cat \"$SFX_MODULE\" \"$SFX_CONFIG\" \"$APP_ARCHIVE\" > \"$SFX_OUTPUT\"
+        ")
+
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMENT "Building Windows SFX Installer for ${TARGET_NAME}..."
+
+            COMMAND bash "${BUILD_SCRIPT}"
+                "$<TARGET_FILE:${TARGET_NAME}>"
+                "${BUNDLE_DIR}"
+                "${APP_ARCHIVE}"
+                "${GTK_PREFIX}"
+                "${WINDOWS_EXTRAS_DIR}/7zsd.sfx"
+                "${WINDOWS_EXTRAS_DIR}/config.txt"
+                "${SFX_OUTPUT}"
+
+            VERBATIM
         )
     endif()
 endfunction()
