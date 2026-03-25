@@ -82,8 +82,8 @@ function(add_task TARGET_NAME APP_NAME)
         file(TO_CMAKE_PATH "${GTK_PREFIX}" GTK_PREFIX)
 
         set(WINDOWS_EXTRAS_DIR "${CMAKE_SOURCE_DIR}/Extras/Windows/${APP_NAME}")
-        set(BUNDLE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_Bundle")
-        set(SFX_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_Installer.exe")
+        set(BUNDLE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}-cache")
+        set(SFX_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}-bundle.exe")
         set(APP_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/app_${TARGET_NAME}.7z")
 
         file(TO_NATIVE_PATH "${WINDOWS_EXTRAS_DIR}/7zsd.sfx" NATIVE_SFX_MODULE)
@@ -127,8 +127,6 @@ function(add_task TARGET_NAME APP_NAME)
         ")
 
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-            COMMENT "Building Windows SFX Installer for ${TARGET_NAME}..."
-
             COMMAND bash "${BUILD_SCRIPT}"
                 "$<TARGET_FILE:${TARGET_NAME}>"
                 "${BUNDLE_DIR}"
