@@ -2,8 +2,11 @@
 // Created by REXE on 26.02.26.
 //
 
-#if defined(__APPLE__) && defined(IS_MAC_BUNDLE)
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#if defined(IS_MAC_BUNDLE)
 #include <mach-o/dyld.h>
+#endif
 #endif
 #include <stdlib.h>
 #include <gtk/gtk.h>
@@ -41,21 +44,30 @@ void platform_activate()
 #if defined(__APPLE__)
     GtkCssProvider *provider = gtk_css_provider_new();
 
-    const char *buttons_css =
-        ".bottom-button-left {"
-        "   border-bottom-left-radius: 18px;"
-        "}"
-        ".bottom-button-right {"
-        "   border-bottom-right-radius: 18px;"
-        "}";
+    char version[256];
+    size_t size = sizeof(version);
+    int majorVersion = 0, minorVersion = 0, patchVersion = 0;
+    if (sysctlbyname("kern.osproductversion", &version, &size, NULL, 0) == 0)
+        sscanf(version, "%d.%d.%d", &majorVersion, &minorVersion, &patchVersion);
 
-    gtk_css_provider_load_from_string(provider, buttons_css);
+    if (26 <= majorVersion)
+    {
+        const char *buttons_css =
+            ".bottom-button-left {"
+            "   border-bottom-left-radius: 18px;"
+            "}"
+            ".bottom-button-right {"
+            "   border-bottom-right-radius: 18px;"
+            "}";
 
-    gtk_style_context_add_provider_for_display(
-        gdk_display_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(provider);
+        gtk_css_provider_load_from_string(provider, buttons_css);
+
+        gtk_style_context_add_provider_for_display(
+            gdk_display_get_default(),
+            GTK_STYLE_PROVIDER(provider),
+            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+        g_object_unref(provider);
+    }
 #endif
 }

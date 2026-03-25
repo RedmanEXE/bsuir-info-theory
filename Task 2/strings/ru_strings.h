@@ -9,15 +9,8 @@
 static const char *APP_STR_TITLE =
     "ТИ, лабораторная работа 2 (вариант 14)";
 
-static const char *APP_STR_OPEN_FILE_TITLE =
-    "Открыть файл...";
-static const char *APP_STR_SAVE_FILE_TITLE =
-    "Сохранить в файл...";
-
-static const char *APP_STR_ENCRYPT_TITLE =
-    "Зашифровать";
-static const char *APP_STR_DECRYPT_TITLE =
-    "Расшифровать";
+static const char *APP_STR_LAUNCH_TITLE =
+    "Запуск";
 static const char *APP_STR_CLEAR_TITLE =
     "Очистить";
 
@@ -30,54 +23,53 @@ static const char *APP_STR_FILE_SAVE_DIALOG_TITLE =
     "Выберите место для итогового файла";
 // END
 
-// "Rotation Matrix Page" strings
-static const char *RTMP_STR_TITLE =
-    "Поворачивающаяся решётка";
+// "LFSR page" strings
+static const char *LFSRP_STR_TITLE =
+    "Поточное LFSR шифрование";
 
-static const char *RTMP_STR_ENTRY_SOURCE_TEXT_TITLE =
-    "Исходный текст";
-static const char *RTMP_STR_ENTRY_SUMMARY_TEXT_TITLE =
-    "Итоговый текст";
+static const char *LFSRP_STR_ENTRY_BEGIN_REGISTER_STATE_TITLE =
+    "Начальное значение регистра";
+static const char *LFSRP_STR_ENTRY_BEGIN_REGISTER_STATE_COUNTER_TEXT =
+    "%d / %d";
+static const char *LFSRP_STR_ENTRY_INPUT_FILE_TITLE =
+    "Входной файл";
+static const char *LFSRP_STR_ENTRY_OUTPUT_FILE_TITLE =
+    "Итоговый файл";
+static const char *LFSRP_STR_ENTRY_INPUT_FILE_BYTES_TITLE =
+    "Входные байты";
+static const char *LFSRP_STR_ENTRY_GENERATED_BYTES_TITLE =
+    "Генерация";
+static const char *LFSRP_STR_ENTRY_OUTPUT_FILE_BYTES_TITLE =
+    "Итоговые байты";
 
-static const char *RTMP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING =
-    "В исходном тексте содержатся символы, которые не являются символами английского алфавита. Они были пропущены в ходе операции!";
-static const char *RTMP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR =
-    "Исходный текст не содержит символов английского алфавита!";
-static const char *RTMP_STR_EMPTY_SOURCE_TEXT_ERROR =
-    "Это поле не может быть пустым!";
+static const char *LFSRP_STR_NO_ONES_IN_REGISTER_ERROR =
+    "Регистр должен содержать хотя бы одну единицу для возможности работы алгоритма!";
+static const char *LFSRP_STR_EMPTY_REGISTER_ERROR =
+    "Регистр не может быть пустым!";
 
-static const char *RTMP_STR_MATRIX_TITLE =
-    "Матрица, полученная в ходе операции (по шагам)";
-static const char *RTMP_STR_MATRIX_STEP_TITLE =
-    "Шаг %d из %d";
-// END
-
-// "Vigenere Algorithm Page" strings
-static const char *VALP_STR_TITLE =
-    "Алгоритм Виженера (прогрессивный ключ)";
-
-static const char *VALP_STR_ENTRY_KEY_TITLE =
-    "Ключ";
-static const char *VALP_STR_ENTRY_SOURCE_TEXT_TITLE =
-    "Исходный текст";
-static const char *VALP_STR_ENTRY_SUMMARY_TEXT_TITLE =
-    "Итоговый текст";
-static const char *VALP_STR_ENTRY_PROGRESSIVE_KEY_TITLE =
-    "Прогрессивный ключ, полученный из оригинального";
-
-static const char *VALP_STR_NON_VALID_CHARS_IN_KEY_WARNING =
-    "Ключ содержит символы, которые не являются символами русского алфавита. Они были пропущены в ходе операции!";
-static const char *VALP_STR_NON_VALID_CHARS_IN_SOURCE_TEXT_WARNING =
-    "В исходном тексте содержатся символы, которые не являются символами русского алфавита. Они были пропущены в ходе операции!";
-static const char *VALP_STR_NO_VALID_CHARS_IN_SOURCE_TEXT_ERROR =
-    "Исходный текст не содержит символов русского алфавита!";
-static const char *VALP_STR_NO_VALID_CHARS_IN_KEY_ERROR =
-    "Ключ не содержит символов русского алфавита!";
-static const char *VALP_STR_EMPTY_ENTRY_ERROR =
-    "Это поле не может быть пустым!";
-
-static const char *VALP_STR_MATRIX_TITLE =
-    "Сопоставление итогового текста с исходными данными";
+static const char *LFSRP_STR_DIALOG_PROGRESS_TITLE =
+    "Шифрование...";
+static const char *LFSRP_STR_DIALOG_PROGRESS_DESCRIPTION =
+    "Процесс потокового шифрования занимает некоторое время.\n"
+    "Об оставшемся количестве итераций можно узнать из полосы прогресса ниже!";
+static const char *LFSRP_STR_DIALOG_PROGRESS_TEXT =
+    "%s / %s";
+static const char *LFSRP_STR_DIALOG_PROGRESS_VALUE_WOF_TEXT =
+    "%.0f %s";
+static const char *LFSRP_STR_DIALOG_PROGRESS_VALUE_WF_TEXT =
+    "%.2f %s";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_B =
+    "Б";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_KB =
+    "кБ";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_MB =
+    "МБ";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_GB =
+    "ГБ";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_TB =
+    "ТБ";
+static const char *LFSRP_STR_DIALOG_MEMORY_UNITS_PB =
+    "ПБ";
 // END
 
 #endif //INFO_THEORY_RU_STRINGS_H
