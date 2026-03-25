@@ -31,7 +31,7 @@ jobs:
       - name: Configure project
         shell: msys2 {0}
         run: |
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPACK_AS_APP=ON -DCMAKE_PREFIX_PATH=/ucrt64/
+          cmake -B build -G Ninja -DCMAKE_C_FLAGS="-mwindows" -DCMAKE_BUILD_TYPE=Release -DPACK_AS_APP=ON -DCMAKE_PREFIX_PATH=/ucrt64/
 
       - name: Build and package
         shell: msys2 {0}
