@@ -6,7 +6,7 @@
 #include "../crypto/lfsr.h"
 #include "../../GTK Tools/file_selector_deco/selector_ext_icons.h"
 
-#define BUFFER_SIZE                         512
+#define BUFFER_SIZE                         2048
 
 void lfsr_page_create(struct AppPage *page, GtkWidget *window);
 void lfsr_page_open_response(AppPage *page, GObject *original_object, GAsyncResult *res);
@@ -18,6 +18,16 @@ AppPage lfsr_page = {
     .on_file_dialog_open_result = lfsr_page_open_response,
     .on_file_dialog_save_result = lfsr_page_save_response,
     .on_free = lfsr_page_free
+};
+
+struct LFSREndData
+{
+    struct LFSRAlgorithmData *data;
+
+    uint8_t start[8];
+    uint8_t end[8];
+
+    uint64_t total_bytes;
 };
 
 struct LFSRProgressData
@@ -43,6 +53,7 @@ struct LFSRAlgorithmData
     GtkWidget *in_file_selector_icon;
     GtkWidget *out_file_selector;
     GtkWidget *out_file_selector_icon;
+    GtkWidget *out_edit;
 
     GFile *in_file;
     GFile *out_file;
@@ -82,6 +93,17 @@ static void apply_inline_css_styles(void)
         "}"
         "row.floating-row.has-subtitle .subtitle {"
         "   opacity: 1;"
+        "}"
+        "textview,"
+        "textview > text,"
+        "textview > border {"
+        "   background: transparent;"
+        "}"
+        "button, row, textview, label {"
+        "   font-weight: bold;"
+        "}"
+        "list, .no-shadow {"
+        "   box-shadow: none;"
         "}";
 
     gtk_css_provider_load_from_string(provider, pb_css);
@@ -133,6 +155,7 @@ static void show_progress_dialog(struct LFSRAlgorithmData *data)
     data->progress_dialog = adw_dialog_new();
     adw_dialog_set_follows_content_size(ADW_DIALOG(data->progress_dialog), TRUE);
     adw_dialog_set_presentation_mode(ADW_DIALOG(data->progress_dialog), ADW_DIALOG_FLOATING);
+    adw_dialog_set_can_close(ADW_DIALOG(data->progress_dialog), FALSE);
 
     GtkWidget *container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
@@ -176,7 +199,7 @@ static void show_progress_dialog(struct LFSRAlgorithmData *data)
 
 char *format_bytes_to_string(uint64_t bytes)
 {
-    const char *units[] = {"Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ"};
+    const char *units[] = {"Б", "кБ", "МБ", "ГБ", "ТБ", "ПБ"};
     int unit_index = 0;
     double formatted_size = (double)bytes;
 
@@ -191,11 +214,59 @@ char *format_bytes_to_string(uint64_t bytes)
     return g_strdup_printf("%.2f %s", formatted_size, units[unit_index]);
 }
 
+void format_arrays_to_binary(const uint64_t total_bytes, const uint8_t arr1[8],
+                             const uint8_t arr2[8], char *out_buffer)
+{
+    char *ptr = out_buffer;
+    int n1 = total_bytes > 8 ? 8 : (int)total_bytes;
+
+    for (int i = 0; i < n1; i++)
+    {
+        for (int bit = 7; bit >= 0; bit--)
+            *ptr++ = (arr1[i] & (1 << bit)) ? '1' : '0';
+
+        if (i < n1 - 1)
+            *ptr++ = ' ';
+    }
+
+    if (total_bytes > 8)
+    {
+        *ptr++ = '\n';
+        if (total_bytes > 16)
+        {
+            *ptr++ = '.';
+            *ptr++ = '.';
+            *ptr++ = '.';
+            *ptr++ = '\n';
+        }
+
+        int n2 = total_bytes > 16 ? 8 : (int)(total_bytes - 8);
+        for (int i = 0; i < n2; i++)
+        {
+            for (int bit = 7; bit >= 0; bit--)
+                *ptr++ = (arr2[i] & (1 << bit)) ? '1' : '0';
+
+            if (i < n2 - 1)
+                *ptr++ = ' ';
+        }
+    }
+
+    *ptr = '\0';
+}
+
 static int on_process_ended(gpointer user_data)
 {
-    struct LFSRAlgorithmData *data = (struct LFSRAlgorithmData *)user_data;
+    struct LFSREndData *data = (struct LFSREndData *)user_data;
 
-    adw_dialog_close(data->progress_dialog);
+    char bin_text[148];
+    format_arrays_to_binary(data->total_bytes, data->start, data->end, bin_text);
+    gtk_text_buffer_set_text(
+        GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(data->data->out_edit))), bin_text, -1);
+
+    adw_dialog_set_can_close(data->data->progress_dialog, TRUE);
+    adw_dialog_close(data->data->progress_dialog);
+
+    g_free(user_data);
 
     return G_SOURCE_REMOVE;
 }
@@ -236,6 +307,7 @@ static gpointer process_file(gpointer user_data) {
     GFileInputStream *in_stream = g_file_read(data->in_file, NULL, NULL);
     GFileOutputStream *out_stream = g_file_replace(data->out_file, NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL);
 
+    uint8_t begin_bytes[8], end_bytes[8];
     int64_t last_update_time = 0;
     int64_t read_bytes_len = 0;
     uint64_t total_bytes_processed = 0;
@@ -245,6 +317,12 @@ static gpointer process_file(gpointer user_data) {
         {
             const uint8_t byte = Crypto_LFSRAlgorithm_GenerateByte(data->lfsr_algorithm);
             out[i] = in[i] ^ byte;
+
+            if (total_bytes_processed < 8 && i < 8)
+                begin_bytes[i] = byte;
+
+            if (read_bytes_len - i - 1 < 8)
+                end_bytes[read_bytes_len - i - 1] = byte;
         }
         g_output_stream_write(G_OUTPUT_STREAM(out_stream), out, read_bytes_len, NULL, NULL);
 
@@ -264,7 +342,12 @@ static gpointer process_file(gpointer user_data) {
     g_input_stream_close(G_INPUT_STREAM(in_stream), NULL, NULL);
     g_output_stream_close(G_OUTPUT_STREAM(out_stream), NULL, NULL);
 
-    g_idle_add(data->on_process_ended, data);
+    struct LFSREndData *end_data = (struct LFSREndData *)g_new(struct LFSREndData, 1);
+    end_data->data = data;
+    end_data->total_bytes = in_size;
+    memcpy(end_data->start, begin_bytes, sizeof(begin_bytes));
+    memcpy(end_data->end, end_bytes, sizeof(end_bytes));
+    g_idle_add(data->on_process_ended, end_data);
 
     return NULL;
 }
@@ -318,6 +401,7 @@ static void on_clear_button_clicked(GtkWidget *widget, gpointer user_data)
     struct LFSRAlgorithmData *data = (struct LFSRAlgorithmData *)user_data;
 
     gtk_editable_set_text(GTK_EDITABLE(data->reg_edit), "");
+    gtk_text_buffer_set_text(GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(data->out_edit))), "", -1);
 
     if (NULL != data->in_file)
         g_object_unref(data->in_file);
@@ -457,7 +541,7 @@ void lfsr_page_create(struct AppPage *page, GtkWidget *window)
         pango_attr_list_insert(label_attrlist, label_attrlist_attr);
         gtk_label_set_attributes(GTK_LABEL(label), label_attrlist);
     }
-    gtk_grid_attach(GTK_GRID(container), label, 0, 0, 24, 1);
+    gtk_grid_attach(GTK_GRID(container), label, 0, 0, 36, 1);
 
     // Center
     GtkWidget *reg_edit_wrapper = adw_preferences_group_new();
@@ -474,7 +558,7 @@ void lfsr_page_create(struct AppPage *page, GtkWidget *window)
                      G_CALLBACK(on_reg_edit_insert_text), data);
 
     adw_preferences_group_add(ADW_PREFERENCES_GROUP(reg_edit_wrapper), data->reg_edit);
-    gtk_grid_attach(GTK_GRID(container), reg_edit_wrapper, 0, 1, 24, 1);
+    gtk_grid_attach(GTK_GRID(container), reg_edit_wrapper, 0, 1, 36, 1);
 
     GtkWidget *in_file_selector_wrapper = adw_preferences_group_new();
 
@@ -499,14 +583,14 @@ void lfsr_page_create(struct AppPage *page, GtkWidget *window)
     adw_action_row_set_activatable_widget(ADW_ACTION_ROW(data->in_file_selector), in_file_selector_file_select);
 
     adw_preferences_group_add(ADW_PREFERENCES_GROUP(in_file_selector_wrapper), data->in_file_selector);
-    gtk_grid_attach(GTK_GRID(container), in_file_selector_wrapper, 0, 2, 11, 1);
+    gtk_grid_attach(GTK_GRID(container), in_file_selector_wrapper, 0, 2, 17, 1);
 
     GtkWidget *btn_change = gtk_button_new_with_icon_and_label("object-flip-horizontal", "", 0);
     gtk_widget_add_css_class(btn_change, "circular");
     gtk_widget_add_css_class(btn_change, "flat");
     gtk_widget_add_css_class(btn_change, "osd");
     g_signal_connect(G_OBJECT(btn_change), "clicked", G_CALLBACK(on_change_button_clicked), data);
-    gtk_grid_attach(GTK_GRID(container), btn_change, 11, 2, 2, 1);
+    gtk_grid_attach(GTK_GRID(container), btn_change, 17, 2, 2, 1);
 
     GtkWidget *out_file_selector_wrapper = adw_preferences_group_new();
 
@@ -531,21 +615,32 @@ void lfsr_page_create(struct AppPage *page, GtkWidget *window)
     adw_action_row_set_activatable_widget(ADW_ACTION_ROW(data->out_file_selector), out_file_selector_file_select);
 
     adw_preferences_group_add(ADW_PREFERENCES_GROUP(out_file_selector_wrapper), data->out_file_selector);
-    gtk_grid_attach(GTK_GRID(container), out_file_selector_wrapper, 13, 2, 11, 1);
+    gtk_grid_attach(GTK_GRID(container), out_file_selector_wrapper, 19, 2, 17, 1);
+
+    data->out_edit = gtk_text_view_new();
+    gtk_widget_add_css_class(data->out_edit, "flat");
+    gtk_text_view_set_justification(GTK_TEXT_VIEW(data->out_edit), GTK_JUSTIFY_CENTER);
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(data->out_edit), FALSE);
+    gtk_widget_set_margin(data->out_edit, 8);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(data->out_edit), GTK_WRAP_WORD_CHAR);
+    GtkWidget *out_scrolled_window = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(out_scrolled_window), data->out_edit);
+    gtk_widget_add_css_class(out_scrolled_window, "no-shadow");
+    gtk_widget_add_css_class(out_scrolled_window, "card");
+    gtk_widget_set_vexpand(out_scrolled_window, TRUE);
+
+    gtk_grid_attach(GTK_GRID(container), out_scrolled_window, 0, 3, 36, 1);
 
     // Bottom
     GtkWidget *btn_launch = gtk_button_new_with_icon_and_label("media-playback-start", "Запуск", 8);
     gtk_widget_add_css_class(btn_launch, "bottom-button-left");
-    gtk_widget_add_css_class(btn_launch, "card");
-    gtk_widget_add_css_class(btn_launch, "suggested-action");
     g_signal_connect(G_OBJECT(btn_launch), "clicked", G_CALLBACK(on_launch_button_clicked), data);
-    gtk_grid_attach(GTK_GRID(container), btn_launch, 0, 3, 18, 1);
+    gtk_grid_attach(GTK_GRID(container), btn_launch, 0, 4, 28, 1);
     GtkWidget *btn_clear = gtk_button_new_with_icon_and_label("edit-clear", "Очистить", 8);
     gtk_widget_add_css_class(btn_clear, "bottom-button-right");
-    gtk_widget_add_css_class(btn_clear, "card");
     gtk_widget_add_css_class(btn_clear, "destructive-action");
     g_signal_connect(G_OBJECT(btn_clear), "clicked", G_CALLBACK(on_clear_button_clicked), data);
-    gtk_grid_attach(GTK_GRID(container), btn_clear, 18, 3, 6, 1);
+    gtk_grid_attach(GTK_GRID(container), btn_clear, 28, 4, 8, 1);
 
     page->page = container;
 }
