@@ -111,6 +111,7 @@ function(add_task TARGET_NAME APP_NAME)
 
             cp \"$TARGET_FILE\" \"$BUNDLE_DIR/\"
             ldd \"$TARGET_FILE\" | grep -i '\\.dll' | awk '{print $3}' | grep -v -i '^/c/windows' | xargs -I {} cp \"{}\" \"$BUNDLE_DIR/\"
+            cp \"$PREFIX/bin/vulkan-1.dll\" \"$BUNDLE_DIR/\" 2>/dev/null || true
 
             cp \"$PREFIX\"/share/glib-2.0/schemas/org.gtk.gtk4.*.gschema.xml \"$BUNDLE_DIR/share/glib-2.0/schemas/\"
             glib-compile-schemas \"$BUNDLE_DIR/share/glib-2.0/schemas/\"
@@ -118,6 +119,9 @@ function(add_task TARGET_NAME APP_NAME)
             cp -r \"$PREFIX\"/share/icons/Adwaita \"$BUNDLE_DIR/share/icons/\"
             cp -r \"$PREFIX\"/share/icons/hicolor \"$BUNDLE_DIR/share/icons/\"
             cp -r \"$PREFIX\"/lib/gdk-pixbuf-2.0/* \"$BUNDLE_DIR/lib/gdk-pixbuf-2.0/\" 2>/dev/null || true
+
+            mkdir -p \"$BUNDLE_DIR/lib/gtk-4.0\"
+            cp -r \"$PREFIX\"/lib/gtk-4.0/* \"$BUNDLE_DIR/lib/gtk-4.0/\" 2>/dev/null || true
 
             rm -f \"$APP_ARCHIVE\"
             cd \"$BUNDLE_DIR\"
