@@ -4,12 +4,23 @@ project("Info Theory" C)
 set(CMAKE_C_STANDARD 17)
 
 option(PACK_AS_APP "Build bundled app for selected platform" OFF)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version" FORCE)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
 pkg_check_modules(Adwaita REQUIRED IMPORTED_TARGET libadwaita-1)
 
 function(add_task TARGET_NAME APP_NAME)
+    execute_process(
+        COMMAND xcrun -find vtool
+        OUTPUT_VARIABLE VTOOL_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if(NOT VTOOL_PATH)
+        find_program(VTOOL_PATH vtool)
+    endif()
+
     add_executable(${TARGET_NAME} ${ARGN})
     target_link_libraries(${TARGET_NAME}
             PRIVATE
@@ -35,10 +46,13 @@ function(add_task TARGET_NAME APP_NAME)
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMENT "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>"
 
+                COMMAND ${VTOOL_PATH} -set-build-version macos 11.0 26.0 -replace -output "$<TARGET_FILE:${TARGET_NAME}>" "$<TARGET_FILE:${TARGET_NAME}>"
                 COMMAND dylibbundler -od -b
                 -x "$<TARGET_FILE:${TARGET_NAME}>"
                 -d "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks/"
                 -p "@executable_path/../Frameworks/"
+
+                COMMAND find "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Frameworks" -name "*.dylib" -exec ${VTOOL_PATH} -set-build-version macos 11.0 11.0 -replace -output {} {} "\;"
 
                 COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Resources/share/glib-2.0/schemas"
                 COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Resources/share/icons/Adwaita"
@@ -54,6 +68,8 @@ function(add_task TARGET_NAME APP_NAME)
 
                 COMMAND cp -L ${MAC_ICON} "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Resources/"
                 COMMAND cp -L ${MAC_ICON_ADAPTIVE} "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>/Contents/Resources/"
+
+                COMMAND codesign --force --deep --sign - "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>"
 
                 COMMAND hdiutil create -volname "${APP_NAME}" -srcfolder "$<TARGET_BUNDLE_DIR:${TARGET_NAME}>" -ov -format UDZO "${APP_NAME}.dmg"
         )
