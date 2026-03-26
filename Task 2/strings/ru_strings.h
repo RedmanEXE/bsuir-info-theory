@@ -25,7 +25,7 @@ static const char *APP_STR_FILE_SAVE_DIALOG_TITLE =
 
 // "LFSR page" strings
 static const char *LFSRP_STR_TITLE =
-    "Поточное LFSR шифрование";
+    "Потоковое LFSR шифрование";
 
 static const char *LFSRP_STR_ENTRY_BEGIN_REGISTER_STATE_TITLE =
     "Начальное значение регистра";
