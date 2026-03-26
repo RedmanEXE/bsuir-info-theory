@@ -36,7 +36,6 @@ jobs:
       - name: Build and package
         shell: msys2 {0}
         run: |
-          # Собираем проект. Во время POST_BUILD запустится скрипт создания _Installer.exe
           cmake --build build
 
       - name: Upload files
