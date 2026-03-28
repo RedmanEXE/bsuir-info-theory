@@ -45,7 +45,7 @@ static const char *LFSRP_STR_ENTRY_OUTPUT_FILE_BYTES_TITLE =
 static const char *LFSRP_STR_NO_ONES_IN_REGISTER_ERROR =
     "Регистр должен содержать хотя бы одну единицу для возможности работы алгоритма!";
 static const char *LFSRP_STR_EMPTY_REGISTER_ERROR =
-    "Регистр не может быть пустым!";
+    "Регистр должен содержать минимум 2 символа!";
 
 static const char *LFSRP_STR_DIALOG_PROGRESS_TITLE =
     "Шифрование...";

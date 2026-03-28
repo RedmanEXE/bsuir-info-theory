@@ -511,7 +511,7 @@ static void on_launch_button_clicked(GtkWidget *widget, gpointer user_data)
         if (NULL == data->out_file)
             gtk_widget_add_css_class(data->out_file_selector, "error");
 
-        if (0 == reg_len)
+        if (2 > reg_len)
             EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->reg_edit), LFSRP_STR_EMPTY_REGISTER_ERROR);
 
         return;
@@ -580,6 +580,8 @@ static void on_reg_edit_insert_text(
     uint32_t copied = 0;
     for (uint32_t i = 0; i < new_text_length; i++)
     {
+        if (copied + (*position) >= REGISTER_LENGTH)
+            break;
         if ('0' == new_text[i] || '1' == new_text[i])
             new_text[copied++] = new_text[i];
     }
@@ -591,7 +593,6 @@ static void on_reg_edit_changed(GtkWidget *widget, gpointer user_data)
     struct LFSRAlgorithmData *data = (struct LFSRAlgorithmData *)user_data;
 
     EntryDeco_ClearRowDecorations(ADW_ENTRY_ROW(widget));
-
 
     const char *text = gtk_editable_get_text(GTK_EDITABLE(widget));
     glong length = g_utf8_strlen(text, -1);
@@ -649,7 +650,7 @@ void lfsr_page_create(struct AppPage *page, GtkWidget *window)
     g_free(counter_str);
     adw_entry_row_add_suffix(ADW_ENTRY_ROW(data->reg_edit), data->reg_edit_counter);
 
-    adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->reg_edit), REGISTER_LENGTH);
+    // adw_entry_row_set_max_length(ADW_ENTRY_ROW(data->reg_edit), REGISTER_LENGTH);
     g_signal_connect(G_OBJECT(data->reg_edit), "changed", G_CALLBACK(on_reg_edit_changed), data);
     g_signal_connect(G_OBJECT(gtk_editable_get_delegate(GTK_EDITABLE(data->reg_edit))), "insert-text",
                      G_CALLBACK(on_reg_edit_insert_text), data);
