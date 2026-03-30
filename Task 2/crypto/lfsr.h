@@ -39,7 +39,7 @@ uint8_t Crypto_LFSRAlgorithm_GenerateByte(Crypto_LFSRAlgorithm *manager)
         manager->reg = ((manager->reg << 1) | new_bit);
     }
 
-    uint8_t out = (manager->reg >> (REGISTER_LENGTH - 1)) & 0xFF;
+    uint8_t out = (manager->reg >> (REGISTER_LENGTH)) & 0xFF;
     manager->reg &= REGISTER_MASK;
 
     return out;
