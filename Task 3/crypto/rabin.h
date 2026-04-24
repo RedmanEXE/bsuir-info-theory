@@ -99,15 +99,15 @@ void Crypto_RabinAlgorithm_Destroy(Crypto_RabinAlgorithm *manager)
         free(manager);
 }
 
-int64_t Crypto_RabinAlgorithm_EncryptByte(Crypto_RabinAlgorithm *manager, uint8_t m)
+uint64_t Crypto_RabinAlgorithm_EncryptByte(Crypto_RabinAlgorithm *manager, uint8_t m)
 {
     // ci = mi*(mi + b) mod n
-    int64_t m64 = (int64_t)m;
+    int64_t m64 = m;
     int64_t c = Crypto_RabinAlgorithm_Mod(m64 * (m64 + manager->b), manager->n);
     return c;
 }
 
-uint8_t Crypto_RabinAlgorithm_DecryptValue(Crypto_RabinAlgorithm *manager, int64_t c)
+uint8_t Crypto_RabinAlgorithm_DecryptValue(Crypto_RabinAlgorithm *manager, uint64_t c)
 {
     int64_t p = manager->p;
     int64_t q = manager->q;

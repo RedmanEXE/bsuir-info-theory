@@ -25,11 +25,11 @@ struct RabinEndData
 {
     struct RabinAlgorithmData *data;
 
-    uint32_t start_in[8];
-    uint32_t start_out[8];
+    uint64_t start_in[8];
+    uint64_t start_out[8];
 
-    uint32_t end_in[8];
-    uint32_t end_out[8];
+    uint64_t end_in[8];
+    uint64_t end_out[8];
 
     uint64_t total_bytes;
 };
@@ -277,18 +277,15 @@ char *format_bytes_to_string(uint64_t bytes)
     return g_strdup_printf(RABINP_STR_DIALOG_PROGRESS_VALUE_WF_TEXT, formatted_size, units[unit_index]);
 }
 
-#include <stdio.h>
-#include <stdint.h>
-
-void format_arrays_to_decimal(const uint64_t total_bytes, const uint32_t arr1[8],
-                             const uint32_t arr2[8], char *out_buffer)
+void format_arrays_to_decimal(const uint64_t total_bytes, const uint64_t arr1[8],
+                             const uint64_t arr2[8], char *out_buffer)
 {
     char *ptr = out_buffer;
     int n1 = total_bytes > 8 ? 8 : (int)total_bytes;
 
     for (int i = 0; i < n1; i++)
     {
-        ptr += sprintf(ptr, "%u", arr1[i]);
+        ptr += sprintf(ptr, "%llu", arr1[i]);
 
         if (i < n1 - 1)
             *ptr++ = ' ';
@@ -310,7 +307,7 @@ void format_arrays_to_decimal(const uint64_t total_bytes, const uint32_t arr1[8]
 
         for (int i = 0; i < n2; i++)
         {
-            ptr += sprintf(ptr, "%u", arr2[i]);
+            ptr += sprintf(ptr, "%llu", arr2[i]);
 
             if (i < n2 - 1)
                 *ptr++ = ' ';
@@ -324,7 +321,7 @@ static int on_process_ended(gpointer user_data)
 {
     struct RabinEndData *data = (struct RabinEndData *)user_data;
 
-    char bin_text[256];
+    char bin_text[512];
     format_arrays_to_decimal(data->total_bytes, data->start_in, data->end_in, bin_text);
     gtk_text_buffer_set_text(
         GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(data->data->in_file_bytes_edit))), bin_text, -1);
@@ -367,7 +364,7 @@ static gpointer decrypt_file(gpointer user_data)
 {
     struct RabinAlgorithmData *data = (struct RabinAlgorithmData *)user_data;
 
-    uint32_t in[BUFFER_SIZE];
+    uint64_t in[BUFFER_SIZE];
     uint8_t out[BUFFER_SIZE];
 
     GFileInfo *in_info = g_file_query_info(data->in_file, G_FILE_ATTRIBUTE_STANDARD_SIZE, G_FILE_QUERY_INFO_NONE, NULL,
@@ -378,14 +375,14 @@ static gpointer decrypt_file(gpointer user_data)
     GFileInputStream *in_stream = g_file_read(data->in_file, NULL, NULL);
     GFileOutputStream *out_stream = g_file_replace(data->out_file, NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL);
 
-    uint32_t begin_bytes_in[8], begin_bytes_out[8];
-    uint32_t end_bytes_in[8], end_bytes_out[8];
+    uint64_t begin_bytes_in[8], begin_bytes_out[8];
+    uint64_t end_bytes_in[8], end_bytes_out[8];
     int64_t last_update_time = 0;
     int64_t read_bytes_len = 0;
     uint64_t total_bytes_processed = 0;
-    while (read_bytes_len = g_input_stream_read(G_INPUT_STREAM(in_stream), in, BUFFER_SIZE * sizeof(uint32_t), NULL, NULL), 0 < read_bytes_len)
+    while (read_bytes_len = g_input_stream_read(G_INPUT_STREAM(in_stream), in, BUFFER_SIZE * sizeof(uint64_t), NULL, NULL), 0 < read_bytes_len)
     {
-        read_bytes_len /= sizeof(uint32_t);
+        read_bytes_len /= sizeof(uint64_t);
         for (uint32_t i = 0; i < read_bytes_len; i++)
         {
             out[i] = Crypto_RabinAlgorithm_DecryptValue(data->rabin_algorithm, in[i]);
@@ -411,7 +408,7 @@ static gpointer decrypt_file(gpointer user_data)
             struct RabinProgressData *msg = (struct RabinProgressData *)g_new(struct RabinProgressData, 1);
             msg->data = data;
             msg->processed_bytes = total_bytes_processed;
-            msg->total_bytes = in_size / sizeof(uint32_t);
+            msg->total_bytes = in_size / sizeof(uint64_t);
             g_idle_add(data->on_progress_changed, msg);
             last_update_time = current_time;
         }
@@ -437,7 +434,7 @@ static gpointer encrypt_file(gpointer user_data)
     struct RabinAlgorithmData *data = (struct RabinAlgorithmData *)user_data;
 
     uint8_t in[BUFFER_SIZE];
-    uint32_t out[BUFFER_SIZE];
+    uint64_t out[BUFFER_SIZE];
 
     GFileInfo *in_info = g_file_query_info(data->in_file, G_FILE_ATTRIBUTE_STANDARD_SIZE, G_FILE_QUERY_INFO_NONE, NULL,
                                        NULL);
@@ -447,8 +444,8 @@ static gpointer encrypt_file(gpointer user_data)
     GFileInputStream *in_stream = g_file_read(data->in_file, NULL, NULL);
     GFileOutputStream *out_stream = g_file_replace(data->out_file, NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL);
 
-    uint32_t begin_bytes_in[8], begin_bytes_out[8];
-    uint32_t end_bytes_in[8], end_bytes_out[8];
+    uint64_t begin_bytes_in[8], begin_bytes_out[8];
+    uint64_t end_bytes_in[8], end_bytes_out[8];
     int64_t last_update_time = 0;
     int64_t read_bytes_len = 0;
     uint64_t total_bytes_processed = 0;
@@ -456,7 +453,7 @@ static gpointer encrypt_file(gpointer user_data)
     {
         for (uint32_t i = 0; i < read_bytes_len; i++)
         {
-            out[i] = (uint32_t)Crypto_RabinAlgorithm_EncryptByte(data->rabin_algorithm, in[i]);
+            out[i] = Crypto_RabinAlgorithm_EncryptByte(data->rabin_algorithm, in[i]);
 
             if (total_bytes_processed < 8 && i < 8)
             {
@@ -470,7 +467,7 @@ static gpointer encrypt_file(gpointer user_data)
                 end_bytes_out[read_bytes_len - i - 1] = out[i];
             }
         }
-        g_output_stream_write(G_OUTPUT_STREAM(out_stream), out, read_bytes_len * sizeof(uint32_t), NULL, NULL);
+        g_output_stream_write(G_OUTPUT_STREAM(out_stream), out, read_bytes_len * sizeof(uint64_t), NULL, NULL);
 
         total_bytes_processed += read_bytes_len;
         int64_t current_time = g_get_monotonic_time();
