@@ -40,9 +40,9 @@ static const char *RABINP_STR_ENTRY_INPUT_FILE_TITLE =
 static const char *RABINP_STR_ENTRY_OUTPUT_FILE_TITLE =
     "Итоговый файл";
 static const char *RABINP_STR_ENTRY_INPUT_FILE_BYTES_TITLE =
-    "Входные байты";
+    "Входные числа";
 static const char *RABINP_STR_ENTRY_OUTPUT_FILE_BYTES_TITLE =
-    "Итоговые байты";
+    "Итоговые числа";
 
 static const char *RABINP_STR_CANNOT_BE_EMPTY_ERROR =
     "Строка не может быть пустой!";
