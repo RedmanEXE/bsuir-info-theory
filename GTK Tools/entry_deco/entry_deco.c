@@ -61,10 +61,10 @@ void EntryDeco_MarkEntryRowAsError(AdwEntryRow *entry, const char *tooltip_text)
         icon = gtk_image_new_from_icon_name("dialog-error-symbolic");
         adw_entry_row_add_suffix(entry, icon);
         g_object_set_data(G_OBJECT(entry), KEY_ERROR_ICON, icon);
-    }
 
-    gtk_widget_set_tooltip_text(icon, tooltip_text);
-    gtk_widget_add_css_class(GTK_WIDGET(entry), "error");
+        gtk_widget_set_tooltip_text(icon, tooltip_text);
+        gtk_widget_add_css_class(GTK_WIDGET(entry), "error");
+    }
 }
 
 void EntryDeco_MarkEntryRowAsWarning(AdwEntryRow *entry, const char *tooltip_text)
@@ -79,8 +79,8 @@ void EntryDeco_MarkEntryRowAsWarning(AdwEntryRow *entry, const char *tooltip_tex
         icon = gtk_image_new_from_icon_name("dialog-warning-symbolic");
         adw_entry_row_add_suffix(entry, icon);
         g_object_set_data(G_OBJECT(entry), KEY_WARNING_ICON, icon);
-    }
 
-    gtk_widget_set_tooltip_text(icon, tooltip_text);
-    gtk_widget_add_css_class(GTK_WIDGET(entry), "warning");
+        gtk_widget_set_tooltip_text(icon, tooltip_text);
+        gtk_widget_add_css_class(GTK_WIDGET(entry), "warning");
+    }
 }

@@ -163,3 +163,12 @@ add_task(Task2 "Task 2"
     "GTK Tools/independent_wchar/independent_wchar.c"
     "GTK Tools/file_selector_deco/selector_ext_icons.c"
 )
+
+add_task(Task3 "Task 3"
+    "Build Utils/platform_build.c"
+    "Task 3/main.c"
+    "Task 3/pages/page_rabin.c"
+    "GTK Tools/entry_deco/entry_deco.c"
+    "GTK Tools/independent_wchar/independent_wchar.c"
+    "GTK Tools/file_selector_deco/selector_ext_icons.c"
+)
