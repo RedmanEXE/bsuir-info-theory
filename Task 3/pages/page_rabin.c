@@ -419,7 +419,7 @@ static gpointer decrypt_file(gpointer user_data)
 
     struct RabinEndData *end_data = (struct RabinEndData *)g_new(struct RabinEndData, 1);
     end_data->data = data;
-    end_data->total_bytes = in_size;
+    end_data->total_bytes = in_size / sizeof(uint64_t);
     memcpy(end_data->start_in, begin_bytes_in, sizeof(begin_bytes_in));
     memcpy(end_data->start_out, begin_bytes_out, sizeof(begin_bytes_out));
     memcpy(end_data->end_in, end_bytes_in, sizeof(end_bytes_in));
