@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install gtk4 libadwaita pkg-config adwaita-icon-theme cmake dylibbundler
+          brew install gtk4 libadwaita pkg-config adwaita-icon-theme dylibbundler
           
       - name: Configure CMake
         run: |

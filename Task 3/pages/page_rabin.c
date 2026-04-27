@@ -570,6 +570,22 @@ static int check_input_data(struct RabinAlgorithmData *data, const char *p_str, 
         is_valid = 0;
     }
 
+    if (2147483647 < p)
+    {
+        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->p_edit), RABINP_STR_INTEGER_OUT_OF_RANGE_ERROR);
+        is_valid = 0;
+    }
+    if (2147483647 < q)
+    {
+        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->q_edit), RABINP_STR_INTEGER_OUT_OF_RANGE_ERROR);
+        is_valid = 0;
+    }
+    if (2147483647 < b)
+    {
+        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->b_edit), RABINP_STR_INTEGER_OUT_OF_RANGE_ERROR);
+        is_valid = 0;
+    }
+
     if (0 == p_str_cmp_res)
     {
         EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->p_edit), RABINP_STR_CANNOT_BE_EMPTY_ERROR);
@@ -602,12 +618,12 @@ static int check_input_data(struct RabinAlgorithmData *data, const char *p_str, 
 
     if (!Crypto_RabinAlgorithm_CheckRabinCondition(p))
     {
-        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->p_edit), RABINP_STR_P_IS_NOT_PRIME_ERROR);
+        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->p_edit), RABINP_STR_Q_MOD_NOT_EQUAL_3_ERROR);
         is_valid = 0;
     }
     if (!Crypto_RabinAlgorithm_CheckRabinCondition(q))
     {
-        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->q_edit), RABINP_STR_Q_IS_NOT_PRIME_ERROR);
+        EntryDeco_MarkEntryRowAsError(ADW_ENTRY_ROW(data->q_edit), RABINP_STR_Q_MOD_NOT_EQUAL_3_ERROR);
         is_valid = 0;
     }
 

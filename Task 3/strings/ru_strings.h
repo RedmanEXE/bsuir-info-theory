@@ -58,6 +58,8 @@ static const char *RABINP_STR_Q_IS_NOT_PRIME_ERROR =
     "Q должно быть простым числом!";
 static const char *RABINP_STR_B_LESS_OR_MORE_ERROR =
     "B не может быть отрицательным или больше, чем произведение P и Q!";
+static const char *RABINP_STR_INTEGER_OUT_OF_RANGE_ERROR =
+    "Число больше, чем 2147483647, и его произведение не влезает в один чанк файла!";
 static const char *RABINP_STR_P_AND_Q_IS_LESS_THAN_RECOM_WARNING =
     "При произведении чисел P и Q меньше, чем 10533, точность расшифровки может снизиться! Рекомендуется увеличить числа для повышения стойкости и точности.";
 
